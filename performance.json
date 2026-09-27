@@ -1,0 +1,34 @@
+[
+    {
+        "name": "Barrie",
+        "scenario_opening": "Hi, I'm thinking about upgrading my phone. Can you help me understand my options?",
+        "behaviour_score": 0,
+        "knowledge_score": 0,
+        "conversation_score": 0,
+        "total_score": 0,
+        "date": "2026-09-27 20:14"
+    },
+    {
+        "name": "Barrie",
+        "scenario_opening": "I'm not happy with the coverage. I might switch networks.",
+        "behaviour_score": 0,
+        "knowledge_score": 0,
+        "conversation_score": 0,
+        "total_score": 0,
+        "date": "2026-09-27 20:18"
+    },
+    {
+        "name": "Barrie",
+        "scenario_opening": "I'm really not happy. My last upgrade didn't go how I expected and I'm thinking of complaining.",
+        "behaviour_score": 0,
+        "knowledge_score": 0,
+        "conversation_score": 1,
+        "probing_score": 0,
+        "compliance_score": 1,
+        "rapport_score": 0,
+        "confidence_score": 1,
+        "accuracy_score": 1,
+        "total_score": 4,
+        "date": "2026-09-27 20:36"
+    }
+]
