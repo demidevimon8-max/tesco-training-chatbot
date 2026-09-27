@@ -239,9 +239,9 @@ def format_chat(chat_history):
     formatted = []
     for speaker, text in chat_history:
         if speaker == "You":
-            formatted.append((text, None))
+            formatted.append({"role": "user", "content": text})
         else:
-            formatted.append((None, f"{speaker}: {text}"))
+            formatted.append({"role": "assistant", "content": f"{speaker}: {text}"})
     return formatted
 
 with gr.Blocks() as demo:
