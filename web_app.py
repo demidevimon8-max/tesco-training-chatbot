@@ -1,395 +1,316 @@
-import json
-import random
-import datetime
 import gradio as gr
+import random
+import json
+import os
 
-# Load scenarios
-with open("scenarios.json", "r") as f:
-    scenarios = json.load(f)
+# ---------- SCENARIOS (example) ----------
 
-# Performance tracking
-def load_performance():
-    try:
-        with open("performance.json", "r") as f:
-            return json.load(f)
-    except:
-        return []
+SCENARIOS = [
+    {
+        "name": "Billing Issue – Overcharge",
+        "customer_type": "adult_male",
+        "steps": [
+            {"customer": "Hi, I've just checked my bill and it's way higher than usual. What's going on?"},
+            {"customer": "I don't remember agreeing to any extra charges. This is really frustrating."},
+            {"customer": "So what are you going to do about it?"}
+        ]
+    },
+    {
+        "name": "Upgrade Confusion – Contract",
+        "customer_type": "adult_female",
+        "steps": [
+            {"customer": "I was told I could upgrade early, but now I'm being told I can't. Which is it?"},
+            {"customer": "I've been with you for years, this feels really unfair."},
+            {"customer": "Can you explain clearly what my options are?"}
+        ]
+    }
+]
 
-def save_performance(data):
-    with open("performance.json", "w") as f:
-        json.dump(data, f, indent=4)
+# ---------- HELPER FUNCTIONS ----------
 
-# Scoring system
-def score_reply(user_reply, behaviours, keywords):
-    reply = user_reply.lower()
+def format_chat(chat_history):
+    text = ""
+    for msg in chat_history:
+        if msg["role"] == "assistant":
+            text += f"Customer: {msg['content']}\n\n"
+        else:
+            text += f"You: {msg['content']}\n\n"
+    return text.strip()
 
-    behaviour_score = 0
-    knowledge_score = 0
-    conversation_score = 0
-    probing_score = 0
-    compliance_score = 0
-    rapport_score = 0
-    confidence_score = 0
-    accuracy_score = 0
 
-    # Behaviour scoring
-    for behaviour in behaviours:
-        if behaviour.lower() in reply:
-            behaviour_score += 1
+def start_chat(name):
+    scenario = random.choice(SCENARIOS)
+    chat_history = []
 
-    # Knowledge scoring
-    for keyword in keywords:
-        if keyword.lower() in reply:
-            knowledge_score += 1
+    # Intro line
+    chat_history.append({
+        "role": "assistant",
+        "content": f"Scenario: {scenario['name']}\n\nCustomer: {scenario['steps'][0]['customer']}"
+    })
 
-    # Conversation / rapport
-    if any(word in reply for word in ["happy", "help", "support", "glad", "no worries"]):
-        conversation_score += 1
-        rapport_score += 1
+    step_index = 1  # we've already shown step 0
+    scores = {
+        "empathy": 0,
+        "accuracy": 0,
+        "professionalism": 0,
+        "problem_solving": 0,
+        "de_escalation": 0
+    }
+    finished = False
+    frustration = 2  # starting mid-level
+    customer_type = scenario["customer_type"]
 
-    # Confidence
-    if any(word in reply for word in ["recommend", "suggest", "i think", "i'd go for"]):
-        conversation_score += 1
-        confidence_score += 1
+    # initial emotion
+    emotion = "neutral"
+    customer_image = f"characters/{customer_type}/{emotion}.png"
 
-    # Probing
-    if any(word in reply for word in ["why", "how often", "since when", "tell me more", "could you explain", "how long"]):
-        probing_score += 1
+    return chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image
 
-    # Compliance
-    if any(word in reply for word in ["policy", "terms", "conditions", "id", "eligibility", "cooling off"]):
-        compliance_score += 1
 
-    # Rapport
-    if any(word in reply for word in ["thank", "appreciate", "no worries", "that's okay", "glad"]):
-        rapport_score += 1
+# ---------- SCORING ENGINE ----------
 
-    # Confidence
-    if any(word in reply for word in ["definitely", "i recommend", "we can", "i can", "we'll", "what i can do"]):
-        confidence_score += 1
+def score_reply(user_reply, customer_message, frustration_before, frustration_after):
+    score = {
+        "empathy": 0,
+        "accuracy": 0,
+        "professionalism": 0,
+        "problem_solving": 0,
+        "de_escalation": 0
+    }
 
-    # Accuracy (technical knowledge)
-    if any(word in reply for word in [
-        "pac", "stac", "wifi calling", "volte", "apn", "clubcard",
-        "cooling off", "24 month", "30 day", "upgrade", "signal", "coverage"
-    ]):
-        accuracy_score += 1
+    # Empathy
+    if any(word in user_reply.lower() for word in ["sorry", "understand", "appreciate", "thanks for your patience"]):
+        score["empathy"] = 2
+    elif any(word in user_reply.lower() for word in ["okay", "alright"]):
+        score["empathy"] = 1
+
+    # Accuracy (simple keyword check)
+    if any(word in user_reply.lower() for word in ["plan", "contract", "upgrade", "billing", "coverage"]):
+        score["accuracy"] = 2
+    else:
+        score["accuracy"] = 1
+
+    # Professionalism
+    if user_reply.strip().endswith("."):
+        score["professionalism"] = 2
+    else:
+        score["professionalism"] = 1
+
+    # Problem solving
+    if any(word in user_reply.lower() for word in ["let me", "i can", "here's what", "next step", "we can"]):
+        score["problem_solving"] = 2
+    else:
+        score["problem_solving"] = 1
+
+    # De-escalation
+    if frustration_after < frustration_before:
+        score["de_escalation"] = 2
+    elif frustration_after == frustration_before:
+        score["de_escalation"] = 1
+    else:
+        score["de_escalation"] = 0
+
+    return score
+
+
+def generate_feedback(scores):
+    feedback = []
+
+    if scores["empathy"] < 5:
+        feedback.append("Try showing more empathy early in the conversation.")
+    else:
+        feedback.append("Great empathy — you acknowledged the customer's feelings well.")
+
+    if scores["accuracy"] < 5:
+        feedback.append("Some information was unclear or incomplete.")
+    else:
+        feedback.append("Your information was accurate and helpful.")
+
+    if scores["professionalism"] < 5:
+        feedback.append("Work on tone and clarity for a more professional feel.")
+    else:
+        feedback.append("Professional tone throughout — well done.")
+
+    if scores["problem_solving"] < 5:
+        feedback.append("You could offer more concrete steps or solutions.")
+    else:
+        feedback.append("Strong problem-solving — you guided the customer well.")
+
+    if scores["de_escalation"] < 5:
+        feedback.append("Try using calming language to reduce frustration.")
+    else:
+        feedback.append("Excellent de-escalation — you kept frustration under control.")
+
+    return "\n".join(feedback)
+
+
+# ---------- CORE CHAT LOGIC ----------
+
+def chat_step(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration, customer_type):
+    if finished:
+        return chat_history, scenario, step_index, scores, name, finished, frustration, None
+
+    # Current customer message
+    customer_message = scenario["steps"][step_index]["customer"]
+
+    # Add user's reply
+    chat_history.append({"role": "user", "content": user_reply})
+
+    # Frustration before
+    frustration_before = frustration
+
+    # Update frustration (simple rules)
+    if any(word in user_reply.lower() for word in ["no", "can't", "won't", "not possible"]):
+        frustration += 1
+    elif any(word in user_reply.lower() for word in ["sure", "absolutely", "happy", "help"]):
+        frustration -= 1
+
+    frustration = max(0, min(frustration, 10))
+
+    # Score reply
+    score = score_reply(user_reply, customer_message, frustration_before, frustration)
+    for k, v in score.items():
+        scores[k] = scores.get(k, 0) + v
+
+    # Add customer response
+    chat_history.append({"role": "assistant", "content": customer_message})
+
+    # Move to next step
+    step_index += 1
+    if step_index >= len(scenario["steps"]):
+        finished = True
+
+    # Emotion based on frustration
+    if frustration < 2:
+        emotion = "happy"
+    elif frustration < 4:
+        emotion = "neutral"
+    else:
+        emotion = "annoyed"
+
+    customer_image = f"characters/{customer_type}/{emotion}.png"
+
+    return chat_history, scenario, step_index, scores, name, finished, frustration, customer_image
+
+
+# ---------- GRADIO HANDLERS ----------
+
+def on_start(name):
+    chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image = start_chat(name)
 
     return (
-        behaviour_score,
-        knowledge_score,
-        conversation_score,
-        probing_score,
-        compliance_score,
-        rapport_score,
-        confidence_score,
-        accuracy_score
+        customer_image,
+        format_chat(chat_history),
+        chat_history,
+        scenario,
+        step_index,
+        scores,
+        name,
+        finished,
+        frustration,
+        customer_type
     )
 
-# ⭐ Smarter frustration logic
-def update_frustration(user_reply, step, frustration):
-    reply = user_reply.lower()
-    words = user_reply.split()
 
-    # Very short replies
-    if len(words) < 2:
-        frustration += 2
-    elif len(words) < 5:
-        frustration += 1
+def on_send(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration, customer_type):
+    chat_history, scenario, step_index, scores, name, finished, frustration, customer_image = chat_step(
+        user_reply, chat_history, scenario, step_index, scores, name, finished, frustration, customer_type
+    )
 
-    # Negative or dismissive replies (avoid false positives)
-    negative_phrases = ["idk", "don't know", "dunno", "nah"]
-    if any(phrase in reply for phrase in negative_phrases):
-        frustration += 2
-
-    if reply.strip() in ["no", "nope"]:
-        frustration += 2
-
-    # Ignoring the step keywords (only if reply is generic)
-    if step:
-        keyword_hit = any(keyword.lower() in reply for keyword in step["keywords"])
-        if not keyword_hit:
-            generic_replies = ["ok", "okay", "sure", "alright", "yeah", "right"]
-            if reply in generic_replies or len(words) < 6:
-                frustration += 1
-
-    return frustration
-
-def frustration_response(frustration):
-    if frustration < 2:
-        return None
-    if frustration < 4:
-        return "Right… could you explain that a bit more?"
-    if frustration < 6:
-        return "I'm starting to feel like you're not really helping me."
-    return "You know what, I think I'll leave it. Thanks anyway."
-
-# ⭐ Branching customer response based on performance
-def get_customer_response(step, scores, frustration):
-    if step is None:
-        return "Thanks, keep going or type END to finish."
-
-    # If frustration is already high, customer is more negative
-    if frustration >= 4 and "customer_response_bad" in step:
-        return step["customer_response_bad"]
-
-    # If rapport + conversation are good, use positive branch if available
-    if (scores["rapport"] + scores["conversation"]) >= 2 and "customer_response_good" in step:
-        return step["customer_response_good"]
-
-    # Default response
-    return step.get("customer_response", "Okay, go on.")
-
-# Save performance
-def record_performance(
-    name,
-    scenario,
-    behaviour,
-    knowledge,
-    conversation,
-    probing,
-    compliance,
-    rapport,
-    confidence,
-    accuracy,
-    total
-):
-    performance = load_performance()
-
-    entry = {
-        "name": name,
-        "scenario_opening": scenario["opening"],
-        "behaviour_score": behaviour,
-        "knowledge_score": knowledge,
-        "conversation_score": conversation,
-        "probing_score": probing,
-        "compliance_score": compliance,
-        "rapport_score": rapport,
-        "confidence_score": confidence,
-        "accuracy_score": accuracy,
-        "total_score": total,
-        "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    }
-
-    performance.append(entry)
-    save_performance(performance)
-
-# Start scenario
-def start_chat(name):
-    scenario = random.choice(scenarios)
-    opening = scenario["opening"]
-
-    chat_history = []
-    chat_history.append(("System", f"Scenario started for {name}."))
-    chat_history.append(("Customer", opening))
-
-    scores = {
-        "behaviour": 0,
-        "knowledge": 0,
-        "conversation": 0,
-        "probing": 0,
-        "compliance": 0,
-        "rapport": 0,
-        "confidence": 0,
-        "accuracy": 0
-    }
-
-    step_index = 0
-    finished = False
-    frustration = 0
-
-    return chat_history, scenario, step_index, scores, name, finished, frustration
-
-# ⭐ Main chat logic
-def chat_step(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration):
+    # End of scenario: add final score + feedback
     if finished:
-        chat_history.append(("System", "Scenario already finished. Start a new one to continue."))
-        return chat_history, scenario, step_index, scores, name, finished, frustration
+        final_score = sum(scores.values())
+        feedback = generate_feedback(scores)
 
-    user_reply = user_reply.strip()
-    if not user_reply:
-        return chat_history, scenario, step_index, scores, name, finished, frustration
+        chat_history.append({
+            "role": "assistant",
+            "content": f"### Final Score: {final_score}\n\n{feedback}"
+        })
 
-    step = scenario["steps"][step_index] if step_index < len(scenario["steps"]) else None
+    return (
+        customer_image,
+        format_chat(chat_history),
+        chat_history,
+        scenario,
+        step_index,
+        scores,
+        name,
+        finished,
+        frustration,
+        customer_type
+    )
 
-    # Update frustration
-    frustration = update_frustration(user_reply, step, frustration)
 
-    # Customer reaction from frustration
-    reaction = frustration_response(frustration)
+# ---------- UI ----------
 
-    # Customer leaves if too frustrated
-    if reaction and frustration >= 6:
-        chat_history.append(("You", user_reply))
-        chat_history.append(("Customer", reaction))
-        chat_history.append(("System", "Scenario failed — customer walked away due to poor service."))
-        finished = True
-        return chat_history, scenario, step_index, scores, name, finished, frustration
-
-    # Scoring
-    if step:
-        (
-            b, k, c,
-            p, comp, r,
-            conf, acc
-        ) = score_reply(user_reply, step["behaviours"], step["keywords"])
-    else:
-        (
-            b, k, c,
-            p, comp, r,
-            conf, acc
-        ) = score_reply(user_reply, [], [])
-
-    scores["behaviour"] += b
-    scores["knowledge"] += k
-    scores["conversation"] += c
-    scores["probing"] += p
-    scores["compliance"] += comp
-    scores["rapport"] += r
-    scores["confidence"] += conf
-    scores["accuracy"] += acc
-
-    chat_history.append(("You", user_reply))
-
-    # If frustration caused a reaction but not a walk‑away
-    if reaction and frustration < 6:
-        chat_history.append(("Customer", reaction))
-        return chat_history, scenario, step_index, scores, name, finished, frustration
-
-    # Structured steps
-    if step_index < len(scenario["steps"]):
-        customer_text = get_customer_response(step, scores, frustration)
-        chat_history.append(("Customer", customer_text))
-        step_index += 1
-
-        if step_index == len(scenario["steps"]):
-            chat_history.append(("System", "Structured steps complete. You are now in free conversation mode. Type END to finish."))
-
-        return chat_history, scenario, step_index, scores, name, finished, frustration
-
-    # Free mode
-    if user_reply.lower() == "end":
-        total = sum(scores.values())
-
-        feedback_lines = [
-            f"Behaviour: {scores['behaviour']}",
-            f"Knowledge: {scores['knowledge']}",
-            f"Conversation: {scores['conversation']}",
-            f"Probing: {scores['probing']}",
-            f"Compliance: {scores['compliance']}",
-            f"Rapport: {scores['rapport']}",
-            f"Confidence: {scores['confidence']}",
-            f"Accuracy: {scores['accuracy']}",
-            f"Total: {total}"
-        ]
-
-        if total < 10:
-            summary = "Needs improvement — focus on empathy, ownership, and product knowledge."
-        elif total < 20:
-            summary = "Good effort — some strong behaviours, but room to grow."
-        elif total < 30:
-            summary = "Very good — confident, clear, and customer‑focused."
-        else:
-            summary = "Excellent — you handled this like a top‑tier Tesco Mobile colleague."
-
-        feedback_text = "Feedback:\n" + "\n".join(feedback_lines) + "\n\n" + summary
-
-        chat_history.append(("System", feedback_text))
-        finished = True
-
-        record_performance(
-            name,
-            scenario,
-            scores["behaviour"],
-            scores["knowledge"],
-            scores["conversation"],
-            scores["probing"],
-            scores["compliance"],
-            scores["rapport"],
-            scores["confidence"],
-            scores["accuracy"],
-            total
-        )
-
-        return chat_history, scenario, step_index, scores, name, finished, frustration
-
-    chat_history.append(("Customer", "Thanks, keep going or type END to finish."))
-
-    return chat_history, scenario, step_index, scores, name, finished, frustration
-
-# Gradio message formatting
-def format_chat(chat_history):
-    formatted = []
-    for speaker, text in chat_history:
-        if speaker == "You":
-            formatted.append({"role": "user", "content": text})
-        else:
-            formatted.append({"role": "assistant", "content": f"{speaker}: {text}"})
-    return formatted
-
-# UI
 with gr.Blocks() as demo:
-    gr.Markdown("# Tesco Mobile Training Web App")
+    gr.Markdown("# Tesco Mobile Training Simulator")
 
-    name_input = gr.Textbox(label="Colleague name")
-    start_button = gr.Button("Start scenario")
+    with gr.Row():
+        image_output = gr.Image(type="filepath", label="Customer")
+        chat_output = gr.Textbox(label="Conversation", lines=20)
 
-    chatbot = gr.Chatbot(label="Conversation")
-    user_input = gr.Textbox(label="Your reply")
-    send_button = gr.Button("Send")
+    with gr.Row():
+        name_input = gr.Textbox(label="Your name")
+        start_button = gr.Button("Start Scenario")
 
+    with gr.Row():
+        user_input = gr.Textbox(label="Your reply")
+        send_button = gr.Button("Send")
+
+    # State
     chat_state = gr.State([])
     scenario_state = gr.State(None)
     step_state = gr.State(0)
     scores_state = gr.State({})
     name_state = gr.State("")
     finished_state = gr.State(False)
-    frustration_state = gr.State(0)
-
-    def on_start(name):
-        chat_history, scenario, step_index, scores, name, finished, frustration = start_chat(name)
-        return (
-            format_chat(chat_history),
-            chat_history,
-            scenario,
-            step_index,
-            scores,
-            name,
-            finished,
-            frustration
-        )
+    frustration_state = gr.State(2)
+    customer_type_state = gr.State("adult_male")
 
     start_button.click(
         on_start,
         inputs=[name_input],
         outputs=[
-            chatbot,
+            image_output,
+            chat_output,
             chat_state,
             scenario_state,
             step_state,
             scores_state,
             name_state,
             finished_state,
-            frustration_state
+            frustration_state,
+            customer_type_state
         ]
     )
 
-    def on_send(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration):
-        if scenario is None:
-            chat_history.append(("System", "Start a scenario first."))
-            return format_chat(chat_history), chat_history, scenario, step_index, scores, name, finished, frustration
-
-        chat_history, scenario, step_index, scores, name, finished, frustration = chat_step(
-            user_reply, chat_history, scenario, step_index, scores, name, finished, frustration
-        )
-
-        return format_chat(chat_history), chat_history, scenario, step_index, scores, name, finished, frustration
-
     send_button.click(
         on_send,
-        inputs=[user_input, chat_state, scenario_state, step_state, scores_state, name_state, finished_state, frustration_state],
-        outputs=[chatbot, chat_state, scenario_state, step_state, scores_state, name_state, finished_state, frustration_state]
+        inputs=[
+            user_input,
+            chat_state,
+            scenario_state,
+            step_state,
+            scores_state,
+            name_state,
+            finished_state,
+            frustration_state,
+            customer_type_state
+        ],
+        outputs=[
+            image_output,
+            chat_output,
+            chat_state,
+            scenario_state,
+            step_state,
+            scores_state,
+            name_state,
+            finished_state,
+            frustration_state,
+            customer_type_state
+        ]
     )
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0")
+    demo.launch()
