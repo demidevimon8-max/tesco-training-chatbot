@@ -19,6 +19,7 @@ def save_performance(data):
     with open("performance.json", "w") as f:
         json.dump(data, f, indent=4)
 
+# Scoring system
 def score_reply(user_reply, behaviours, keywords):
     reply = user_reply.lower()
 
@@ -31,37 +32,43 @@ def score_reply(user_reply, behaviours, keywords):
     confidence_score = 0
     accuracy_score = 0
 
+    # Behaviour scoring
     for behaviour in behaviours:
         if behaviour.lower() in reply:
             behaviour_score += 1
 
+    # Knowledge scoring
     for keyword in keywords:
         if keyword.lower() in reply:
             knowledge_score += 1
 
+    # Conversation / rapport
     if any(word in reply for word in ["happy", "help", "support", "glad", "no worries"]):
         conversation_score += 1
         rapport_score += 1
 
+    # Confidence
     if any(word in reply for word in ["recommend", "suggest", "i think", "i'd go for"]):
         conversation_score += 1
         confidence_score += 1
 
-    if any(word in reply for word in ["anything else", "any other questions", "is there anything else"]):
-        conversation_score += 1
-
+    # Probing
     if any(word in reply for word in ["why", "how often", "since when", "tell me more", "could you explain", "how long"]):
         probing_score += 1
 
+    # Compliance
     if any(word in reply for word in ["policy", "terms", "conditions", "id", "eligibility", "cooling off"]):
         compliance_score += 1
 
+    # Rapport
     if any(word in reply for word in ["thank", "appreciate", "no worries", "that's okay", "glad"]):
         rapport_score += 1
 
+    # Confidence
     if any(word in reply for word in ["definitely", "i recommend", "we can", "i can", "we'll", "what i can do"]):
         confidence_score += 1
 
+    # Accuracy (technical knowledge)
     if any(word in reply for word in [
         "pac", "stac", "wifi calling", "volte", "apn", "clubcard",
         "cooling off", "24 month", "30 day", "upgrade", "signal", "coverage"
@@ -133,6 +140,7 @@ def get_customer_response(step, scores, frustration):
     # Default response
     return step.get("customer_response", "Okay, go on.")
 
+# Save performance
 def record_performance(
     name,
     scenario,
@@ -166,6 +174,7 @@ def record_performance(
     performance.append(entry)
     save_performance(performance)
 
+# Start scenario
 def start_chat(name):
     scenario = random.choice(scenarios)
     opening = scenario["opening"]
@@ -191,6 +200,7 @@ def start_chat(name):
 
     return chat_history, scenario, step_index, scores, name, finished, frustration
 
+# ⭐ Main chat logic
 def chat_step(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration):
     if finished:
         chat_history.append(("System", "Scenario already finished. Start a new one to continue."))
@@ -307,6 +317,7 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
 
     return chat_history, scenario, step_index, scores, name, finished, frustration
 
+# Gradio message formatting
 def format_chat(chat_history):
     formatted = []
     for speaker, text in chat_history:
@@ -316,6 +327,7 @@ def format_chat(chat_history):
             formatted.append({"role": "assistant", "content": f"{speaker}: {text}"})
     return formatted
 
+# UI
 with gr.Blocks() as demo:
     gr.Markdown("# Tesco Mobile Training Web App")
 
