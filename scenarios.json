@@ -1,662 +1,291 @@
 [
   {
-    "opening": "Hi, I'm thinking about upgrading my phone. Can you help me understand my options?",
+    "opening": "Hi, I'm thinking about upgrading my phone. Not sure where to start.",
     "steps": [
       {
-        "customer_response": "I usually go for Samsung. What's the latest model you offer?",
-        "behaviours": ["empathy", "happy to help", "understand"],
-        "keywords": ["s24", "s24 ultra", "upgrade", "24 month"]
+        "customer_response": "Okay, so what do I need to check first?",
+        "customer_response_good": "Great, thanks for taking ownership. What do I need to check first?",
+        "customer_response_bad": "You're not really explaining anything… what do I need to check?",
+        "behaviours": ["ownership", "empathy"],
+        "keywords": ["upgrade", "contract", "how long"]
       },
       {
-        "customer_response": "I'm not sure if I should go for the Ultra or just the regular one.",
-        "behaviours": ["probing", "recommend", "clarity"],
-        "keywords": ["camera", "battery", "storage"]
+        "customer_response": "I've had this phone for a while now.",
+        "customer_response_good": "Yeah, it's been a while — what do you recommend?",
+        "customer_response_bad": "I mean… I’ve had it a while. Not sure you're helping.",
+        "behaviours": ["probing", "helpful"],
+        "keywords": ["how long", "current phone"]
       },
       {
-        "customer_response": "I use my phone a lot for photos and social media.",
-        "behaviours": ["understand", "rapport"],
-        "keywords": ["camera", "social", "instagram"]
+        "customer_response": "Signal has been a bit hit and miss lately.",
+        "customer_response_good": "Thanks for checking signal — what do you think is causing it?",
+        "customer_response_bad": "Signal… yeah. Doesn’t feel like you’re actually checking anything.",
+        "behaviours": ["accuracy", "ownership"],
+        "keywords": ["signal", "coverage", "postcode"]
       },
       {
-        "customer_response": "Do you think 256GB is enough or should I go higher?",
-        "behaviours": ["confidence", "accuracy"],
-        "keywords": ["256gb", "storage", "recommendation"]
+        "customer_response": "I do want something with better battery life.",
+        "customer_response_good": "Battery life matters — what would you suggest?",
+        "customer_response_bad": "Battery life… yeah. Still not sure you're helping me.",
+        "behaviours": ["recommend", "confidence"],
+        "keywords": ["recommend", "battery"]
       },
       {
-        "customer_response": "I don't want my bill to be too high though.",
-        "behaviours": ["empathy", "ownership"],
-        "keywords": ["budget", "monthly", "affordable"]
-      },
-      {
-        "customer_response": "Can you break down the monthly cost with Clubcard for me?",
-        "behaviours": ["clarity", "explain", "breakdown"],
-        "keywords": ["clubcard", "tariff", "monthly", "24 month"]
-      },
-      {
-        "customer_response": "Is there any difference in warranty or insurance between models?",
-        "behaviours": ["compliance", "accuracy"],
-        "keywords": ["warranty", "insurance", "cover"]
-      },
-      {
-        "customer_response": "If I change my mind, do I have a cooling-off period?",
-        "behaviours": ["compliance", "explain"],
-        "keywords": ["cooling off", "returns", "policy"]
-      },
-      {
-        "customer_response": "Would you personally recommend this phone for someone like me?",
-        "behaviours": ["confidence", "recommend", "rapport"],
-        "keywords": ["recommend", "best option"]
-      },
-      {
-        "customer_response": "Okay, that sounds good. Is there anything else I should know before upgrading?",
-        "behaviours": ["probing", "clarity"],
-        "keywords": ["anything else", "questions", "upgrade"]
+        "customer_response": "Okay, that sounds alright. Anything else I should know?",
+        "customer_response_good": "Thanks — anything else I should know before I decide?",
+        "customer_response_bad": "Right… anything else? Because I'm not convinced.",
+        "behaviours": ["conversation", "rapport"],
+        "keywords": ["anything else", "clubcard"]
       }
     ]
   },
+
   {
-    "opening": "Hi, I'm a Tesco colleague and I'm thinking about upgrading. What special deals do we get?",
+    "opening": "Hi, I’m a Tesco colleague — do we get any special deals?",
     "steps": [
       {
-        "customer_response": "I heard we get colleague discount on phones. Is that right?",
-        "behaviours": ["clarity", "compliance"],
-        "keywords": ["colleague", "discount", "handset"]
+        "customer_response": "Cool, how does the colleague discount work?",
+        "customer_response_good": "Nice, thanks for explaining clearly — how does it work?",
+        "customer_response_bad": "You're not explaining it very well… how does it work?",
+        "behaviours": ["clarity", "knowledge"],
+        "keywords": ["colleague", "discount"]
       },
       {
-        "customer_response": "Does the colleague discount apply to SIM-only as well?",
-        "behaviours": ["clarity", "explain"],
+        "customer_response": "Is it only on phones or SIMs too?",
+        "customer_response_good": "Great, thanks — is it on SIMs too?",
+        "customer_response_bad": "You’re not really answering… is it on SIMs?",
+        "behaviours": ["accuracy", "helpful"],
         "keywords": ["sim only", "discount"]
       },
       {
-        "customer_response": "Are there any limits, like one phone per year or per colleague?",
-        "behaviours": ["compliance", "accuracy"],
-        "keywords": ["policy", "limit", "eligibility"]
-      },
-      {
-        "customer_response": "If I upgrade in store, do I need to bring my ID badge?",
-        "behaviours": ["compliance", "ownership"],
-        "keywords": ["id", "badge", "verification"]
-      },
-      {
-        "customer_response": "Can I combine colleague discount with Clubcard prices?",
-        "behaviours": ["clarity", "accuracy"],
-        "keywords": ["clubcard", "colleague", "stack", "discount"]
-      },
-      {
-        "customer_response": "What happens if I leave Tesco? Does the discount stay on my contract?",
-        "behaviours": ["compliance", "explain"],
-        "keywords": ["leave", "employment", "discount"]
-      },
-      {
-        "customer_response": "Is there any training or guidance for colleagues on mobile offers?",
-        "behaviours": ["helpful", "ownership"],
-        "keywords": ["training", "guidance", "colleague"]
-      },
-      {
-        "customer_response": "If I have a problem with my bill, do I go through colleague services or normal customer care?",
-        "behaviours": ["clarity", "solution"],
-        "keywords": ["billing", "support", "customer care"]
-      },
-      {
-        "customer_response": "Do accessories get colleague discount too?",
-        "behaviours": ["probing", "clarity"],
-        "keywords": ["accessories", "discount"]
-      },
-      {
-        "customer_response": "Thanks for explaining everything. Is there anything else I should know as a colleague?",
-        "behaviours": ["rapport", "clarity"],
-        "keywords": ["anything else", "questions", "colleague"]
-      }
-    ]
-  },
-  {
-    "opening": "I'm really not happy. My last upgrade didn't go how I expected and I'm thinking of complaining.",
-    "steps": [
-      {
-        "customer_response": "The phone I got isn't what I was told. The camera is worse than my old one.",
-        "behaviours": ["empathy", "ownership"],
-        "keywords": ["camera", "expectation", "complaint"]
-      },
-      {
-        "customer_response": "I feel like I wasn't given all the information at the time.",
-        "behaviours": ["empathy", "probing"],
-        "keywords": ["information", "explained", "misled"]
-      },
-      {
-        "customer_response": "My bill is higher than I expected too.",
-        "behaviours": ["investigate", "ownership"],
-        "keywords": ["bill", "monthly", "charges"]
-      },
-      {
-        "customer_response": "I tried calling before and I didn't feel listened to.",
-        "behaviours": ["empathy", "rapport"],
-        "keywords": ["listen", "frustrated", "upset"]
-      },
-      {
-        "customer_response": "What can you actually do to fix this for me?",
-        "behaviours": ["solution", "confidence"],
-        "keywords": ["fix", "resolve", "options"]
-      },
-      {
-        "customer_response": "If I'm still not happy, how do I make a formal complaint?",
-        "behaviours": ["compliance", "clarity"],
-        "keywords": ["complaint", "process", "escalate"]
-      },
-      {
-        "customer_response": "Will this affect my credit or my contract if we change something?",
-        "behaviours": ["accuracy", "explain"],
-        "keywords": ["credit", "contract", "change"]
-      },
-      {
-        "customer_response": "I just want to feel like someone is taking ownership of this.",
-        "behaviours": ["ownership", "rapport"],
-        "keywords": ["ownership", "support"]
-      },
-      {
-        "customer_response": "Can you summarise what you're going to do for me today?",
-        "behaviours": ["clarity", "confidence"],
-        "keywords": ["summary", "today", "action"]
-      },
-      {
-        "customer_response": "Okay, that sounds better. Is there anything else I should watch out for?",
-        "behaviours": ["probing", "accuracy"],
-        "keywords": ["anything else", "future", "charges"]
-      }
-    ]
-  },
-  {
-    "opening": "My phone keeps dropping calls and the signal is terrible. Can you help me with the technical side?",
-    "steps": [
-      {
-        "customer_response": "It started a few days ago. I can't keep a call going.",
-        "behaviours": ["diagnose", "empathy"],
-        "keywords": ["calls", "drop", "signal"]
-      },
-      {
-        "customer_response": "I've tried restarting the phone but it didn't help.",
-        "behaviours": ["investigate", "accuracy"],
-        "keywords": ["restart", "troubleshoot"]
-      },
-      {
-        "customer_response": "My Wi-Fi is fine at home, it's just the mobile signal.",
-        "behaviours": ["understand", "probing"],
-        "keywords": ["wifi", "home", "signal"]
-      },
-      {
-        "customer_response": "Do you support Wi-Fi calling or 4G calling?",
-        "behaviours": ["accuracy", "clarity"],
-        "keywords": ["wifi calling", "4g calling", "volte"]
-      },
-      {
-        "customer_response": "How do I turn Wi-Fi calling on if it's available?",
-        "behaviours": ["explain", "confidence"],
-        "keywords": ["settings", "wifi calling", "steps"]
-      },
-      {
-        "customer_response": "Could it be a problem with the network in my area?",
-        "behaviours": ["diagnose", "accuracy"],
-        "keywords": ["coverage checker", "postcode", "network status"]
-      },
-      {
-        "customer_response": "If it's my phone, can you help me check the APN or data settings?",
-        "behaviours": ["technical", "accuracy"],
-        "keywords": ["apn", "data settings", "mobile data"]
-      },
-      {
-        "customer_response": "Will any of this cost me extra?",
-        "behaviours": ["clarity", "compliance"],
-        "keywords": ["charges", "cost", "billing"]
-      },
-      {
-        "customer_response": "If it doesn't improve, what are my options?",
-        "behaviours": ["solution", "confidence"],
-        "keywords": ["options", "next steps"]
-      },
-      {
-        "customer_response": "Thanks for explaining. Is there anything else I can try myself?",
-        "behaviours": ["rapport", "helpful"],
-        "keywords": ["anything else", "tips", "self help"]
-      }
-    ]
-  },
-  {
-    "opening": "I just have a few general questions about Tesco Mobile before I decide anything.",
-    "steps": [
-      {
-        "customer_response": "What are your opening times in store for mobile help?",
-        "behaviours": ["clarity", "accuracy"],
-        "keywords": ["opening times", "store", "hours"]
-      },
-      {
-        "customer_response": "Do I need an appointment or can I just walk in?",
-        "behaviours": ["clarity", "compliance"],
-        "keywords": ["appointment", "walk in"]
-      },
-      {
-        "customer_response": "Do you keep most phones in stock or do they have to be ordered?",
-        "behaviours": ["accuracy", "confidence"],
-        "keywords": ["stock", "order", "availability"]
-      },
-      {
-        "customer_response": "If I start with SIM-only, can I upgrade to a handset later?",
-        "behaviours": ["solution", "accuracy"],
-        "keywords": ["sim only", "upgrade", "handset"]
-      },
-      {
-        "customer_response": "Do you do business plans as well as personal ones?",
-        "behaviours": ["clarity", "accuracy"],
-        "keywords": ["soho", "business", "plans"]
-      },
-      {
-        "customer_response": "How do I contact you if I have a problem out of hours?",
-        "behaviours": ["clarity", "helpful"],
-        "keywords": ["customer service", "contact", "support"]
-      },
-      {
-        "customer_response": "Do you support things like Wi-Fi calling and 5G?",
-        "behaviours": ["accuracy", "confidence"],
-        "keywords": ["wifi calling", "5g", "network"]
-      },
-      {
-        "customer_response": "Is there anything special I need to bring when I sign up?",
-        "behaviours": ["compliance", "clarity"],
-        "keywords": ["id", "documents", "proof"]
-      },
-      {
-        "customer_response": "Do you have any current promotions or Clubcard deals?",
-        "behaviours": ["probing", "accuracy"],
-        "keywords": ["clubcard", "promotion", "offer"]
-      },
-      {
-        "customer_response": "Okay, thanks. Is there anything else you think I should know?",
-        "behaviours": ["rapport", "clarity"],
-        "keywords": ["anything else", "questions"]
-      }
-    ]
-  },
-  {
-    "opening": "I'm thinking about upgrading my phone. Can you help me understand my options?",
-    "steps": [
-      {
-        "customer_response": "I usually go for Samsung. What's the latest model you offer?",
-        "behaviours": ["empathy", "happy to help", "understand"],
-        "keywords": ["s24", "s24 ultra", "upgrade", "24 month"]
-      },
-      {
-        "customer_response": "Do you know the monthly price with Clubcard?",
-        "behaviours": ["clarity", "explain", "breakdown"],
-        "keywords": ["clubcard", "data", "tariff", "monthly"]
-      },
-      {
-        "customer_response": "Is there a difference in price between 24 and 36 months?",
-        "behaviours": ["clarity", "accuracy"],
-        "keywords": ["24 month", "36 month", "term"]
-      },
-      {
-        "customer_response": "What happens if I want to change my tariff later?",
-        "behaviours": ["solution", "compliance"],
-        "keywords": ["tariff change", "flexible", "policy"]
-      },
-      {
-        "customer_response": "Do I keep my number when I upgrade?",
-        "behaviours": ["accuracy", "clarity"],
-        "keywords": ["keep number", "upgrade", "pac"]
-      },
-      {
-        "customer_response": "Is insurance worth it for this phone?",
-        "behaviours": ["recommend", "confidence"],
-        "keywords": ["insurance", "cover"]
-      },
-      {
-        "customer_response": "If I lose the phone, what happens with the contract?",
-        "behaviours": ["compliance", "accuracy"],
-        "keywords": ["lost", "contract", "policy"]
-      },
-      {
-        "customer_response": "Can you compare this phone with another brand for me?",
-        "behaviours": ["probing", "recommend"],
-        "keywords": ["compare", "alternative"]
-      },
-      {
-        "customer_response": "Is there a cooling-off period after I upgrade?",
-        "behaviours": ["compliance", "explain"],
-        "keywords": ["cooling off", "returns", "policy"]
-      },
-      {
-        "customer_response": "Anything else I should know before I go ahead?",
-        "behaviours": ["clarity", "probing"],
-        "keywords": ["anything else", "questions"]
-      }
-    ]
-  },
-  {
-    "opening": "Hi, I'm a small business owner and I heard you do business plans. Can you tell me more?",
-    "steps": [
-      {
-        "customer_response": "I need phones for my team. Maybe 3 or 4 lines.",
-        "behaviours": ["ownership", "understand", "solution"],
-        "keywords": ["soho", "business", "multi-line", "discount"]
-      },
-      {
-        "customer_response": "Can I get itemised billing for each line?",
-        "behaviours": ["clarity", "explain"],
-        "keywords": ["itemised", "billing", "account", "invoice"]
-      },
-      {
-        "customer_response": "Do you offer any discounts for multiple lines?",
-        "behaviours": ["probing", "accuracy"],
-        "keywords": ["multi-line", "discount", "offer"]
-      },
-      {
-        "customer_response": "Can I mix handsets and SIM-only on the same account?",
-        "behaviours": ["solution", "accuracy"],
-        "keywords": ["sim only", "handset", "account"]
-      },
-      {
-        "customer_response": "How do I manage all the lines if someone leaves my business?",
-        "behaviours": ["ownership", "compliance"],
-        "keywords": ["remove line", "change", "policy"]
-      },
-      {
-        "customer_response": "Is there a dedicated support line for business customers?",
-        "behaviours": ["clarity", "helpful"],
-        "keywords": ["support", "business", "contact"]
-      },
-      {
-        "customer_response": "Can I set spending caps or controls on each line?",
-        "behaviours": ["solution", "accuracy"],
-        "keywords": ["spend cap", "control", "limit"]
-      },
-      {
-        "customer_response": "Do you provide any reports or summaries for usage?",
-        "behaviours": ["clarity", "accuracy"],
-        "keywords": ["report", "usage", "summary"]
-      },
-      {
-        "customer_response": "What do I need to bring to set up a business account?",
-        "behaviours": ["compliance", "clarity"],
-        "keywords": ["id", "documents", "business"]
-      },
-      {
-        "customer_response": "Anything else I should know before moving my team over?",
+        "customer_response": "What about upgrades?",
+        "customer_response_good": "Nice, thanks for checking — what about upgrades?",
+        "customer_response_bad": "Upgrades… you’re not giving me much confidence.",
         "behaviours": ["probing", "ownership"],
-        "keywords": ["anything else", "questions", "business"]
+        "keywords": ["upgrade", "contract"]
+      },
+      {
+        "customer_response": "Okay, that makes sense.",
+        "customer_response_good": "Thanks, that makes sense — anything else?",
+        "customer_response_bad": "Hmm… not sure that makes sense.",
+        "behaviours": ["conversation", "rapport"],
+        "keywords": ["anything else"]
       }
     ]
   },
+
   {
-    "opening": "I'm looking for a SIM-only deal. I'm not sure how much data I need.",
+    "opening": "My signal keeps dropping at home. Can you help?",
     "steps": [
       {
-        "customer_response": "I use social media a lot but not much streaming.",
-        "behaviours": ["understand", "recommend", "empathy"],
-        "keywords": ["sim only", "clubcard", "data", "monthly"]
+        "customer_response": "My postcode is S61 — does that help?",
+        "customer_response_good": "Thanks for checking — does S61 look okay?",
+        "customer_response_bad": "S61… are you even checking?",
+        "behaviours": ["accuracy", "probing"],
+        "keywords": ["postcode", "coverage", "signal"]
       },
       {
-        "customer_response": "Is there a contract or can I leave anytime?",
-        "behaviours": ["clarity", "explain"],
-        "keywords": ["30 day", "flexible", "no contract"]
+        "customer_response": "I use WiFi calling sometimes.",
+        "customer_response_good": "Yeah, WiFi calling helps — what else can I do?",
+        "customer_response_bad": "WiFi calling… you’re not explaining anything.",
+        "behaviours": ["knowledge", "helpful"],
+        "keywords": ["wifi calling", "volte"]
       },
       {
-        "customer_response": "What happens if I go over my data?",
-        "behaviours": ["accuracy", "clarity"],
-        "keywords": ["data cap", "charges", "usage"]
-      },
-      {
-        "customer_response": "Do you have unlimited data options?",
-        "behaviours": ["probing", "solution"],
-        "keywords": ["unlimited", "data", "tariff"]
-      },
-      {
-        "customer_response": "Can I keep my number if I switch to SIM-only?",
-        "behaviours": ["accuracy", "clarity"],
-        "keywords": ["keep number", "sim only", "pac"]
-      },
-      {
-        "customer_response": "Is there a difference between Clubcard prices and normal prices?",
-        "behaviours": ["clarity", "accuracy"],
-        "keywords": ["clubcard", "price", "discount"]
-      },
-      {
-        "customer_response": "If I find I'm using more data later, can I change my plan?",
-        "behaviours": ["solution", "ownership"],
-        "keywords": ["tariff change", "flexible"]
-      },
-      {
-        "customer_response": "Do you support Wi-Fi calling on SIM-only?",
-        "behaviours": ["accuracy", "confidence"],
-        "keywords": ["wifi calling", "sim only"]
-      },
-      {
-        "customer_response": "Is there anything that would tie me in longer than 30 days?",
-        "behaviours": ["compliance", "clarity"],
-        "keywords": ["contract", "terms", "conditions"]
-      },
-      {
-        "customer_response": "Anything else I should know before choosing a SIM-only plan?",
-        "behaviours": ["probing", "clarity"],
-        "keywords": ["anything else", "questions"]
-      }
-    ]
-  },
-  {
-    "opening": "My bill is higher than usual this month. Can you explain why?",
-    "steps": [
-      {
-        "customer_response": "I didn’t change anything. It just went up.",
-        "behaviours": ["empathy", "ownership", "investigate"],
-        "keywords": ["bill", "usage", "extra charges", "data"]
-      },
-      {
-        "customer_response": "Can I lower my bill going forward?",
-        "behaviours": ["solution", "recommend"],
-        "keywords": ["tariff change", "data", "clubcard"]
-      },
-      {
-        "customer_response": "Was it roaming or something else that caused it?",
-        "behaviours": ["accuracy", "investigate"],
-        "keywords": ["roaming", "charges", "usage"]
-      },
-      {
-        "customer_response": "Can you show me how to track my usage?",
-        "behaviours": ["helpful", "clarity"],
-        "keywords": ["app", "usage", "monitor"]
-      },
-      {
-        "customer_response": "Is there a way to cap my spending?",
-        "behaviours": ["solution", "accuracy"],
-        "keywords": ["spend cap", "limit"]
-      },
-      {
-        "customer_response": "Will changing my tariff affect my contract length?",
-        "behaviours": ["compliance", "clarity"],
-        "keywords": ["contract", "tariff change", "terms"]
-      },
-      {
-        "customer_response": "Can you explain any extra services I'm paying for?",
-        "behaviours": ["investigate", "accuracy"],
-        "keywords": ["extras", "add-ons", "services"]
-      },
-      {
-        "customer_response": "If I’m not happy, how do I raise a billing dispute?",
-        "behaviours": ["compliance", "clarity"],
-        "keywords": ["dispute", "complaint", "billing"]
-      },
-      {
-        "customer_response": "Can you summarise what I should do to keep my bill lower?",
-        "behaviours": ["confidence", "clarity"],
-        "keywords": ["summary", "advice", "lower bill"]
-      },
-      {
-        "customer_response": "Anything else I should watch out for on my bill?",
-        "behaviours": ["probing", "accuracy"],
-        "keywords": ["anything else", "charges"]
-      }
-    ]
-  },
-  {
-    "opening": "My phone isn't working properly. It keeps losing signal.",
-    "steps": [
-      {
-        "customer_response": "It started yesterday. I can't make calls.",
-        "behaviours": ["empathy", "ownership", "diagnose"],
-        "keywords": ["coverage", "network", "restart", "settings"]
-      },
-      {
-        "customer_response": "Is there an outage in my area?",
-        "behaviours": ["clarity", "explain"],
-        "keywords": ["coverage checker", "postcode", "network status"]
-      },
-      {
-        "customer_response": "I've tried turning airplane mode on and off.",
-        "behaviours": ["technical", "accuracy"],
-        "keywords": ["airplane mode", "settings"]
-      },
-      {
-        "customer_response": "Does Wi-Fi calling help if my signal is bad?",
-        "behaviours": ["accuracy", "clarity"],
-        "keywords": ["wifi calling", "signal"]
-      },
-      {
-        "customer_response": "How do I turn Wi-Fi calling on?",
-        "behaviours": ["explain", "confidence"],
-        "keywords": ["settings", "wifi calling"]
-      },
-      {
-        "customer_response": "Could it be my SIM card causing the issue?",
-        "behaviours": ["diagnose", "accuracy"],
-        "keywords": ["sim", "fault", "replace"]
-      },
-      {
-        "customer_response": "If it's a network issue, how long does it usually take to fix?",
-        "behaviours": ["clarity", "accuracy"],
-        "keywords": ["network", "fix", "time"]
-      },
-      {
-        "customer_response": "Will I be charged for calls that fail?",
-        "behaviours": ["compliance", "clarity"],
-        "keywords": ["charges", "billing"]
-      },
-      {
-        "customer_response": "If it doesn't improve, what are my options?",
-        "behaviours": ["solution", "confidence"],
-        "keywords": ["options", "next steps"]
-      },
-      {
-        "customer_response": "Anything else I can try myself?",
-        "behaviours": ["helpful", "rapport"],
-        "keywords": ["anything else", "tips"]
-      }
-    ]
-  },
-  {
-    "opening": "I'm not happy with the coverage. I might switch networks.",
-    "steps": [
-      {
-        "customer_response": "I barely get signal at home.",
-        "behaviours": ["empathy", "ownership", "understand"],
-        "keywords": ["coverage", "postcode", "network"]
-      },
-      {
-        "customer_response": "Can you improve it or offer something?",
-        "behaviours": ["solution", "recommend"],
-        "keywords": ["wifi calling", "4g calling", "settings"]
-      },
-      {
-        "customer_response": "Do you use the same network as other providers?",
-        "behaviours": ["accuracy", "clarity"],
-        "keywords": ["network", "coverage", "provider"]
-      },
-      {
-        "customer_response": "If I switch, can I keep my number?",
-        "behaviours": ["accuracy", "clarity"],
-        "keywords": ["pac", "keep number", "switch"]
-      },
-      {
-        "customer_response": "Is there any compensation for poor coverage?",
-        "behaviours": ["compliance", "clarity"],
-        "keywords": ["compensation", "complaint"]
-      },
-      {
-        "customer_response": "Can you check my postcode properly for me?",
-        "behaviours": ["investigate", "accuracy"],
-        "keywords": ["postcode", "coverage checker"]
-      },
-      {
-        "customer_response": "Would Wi-Fi calling fix most of my issues?",
-        "behaviours": ["solution", "accuracy"],
-        "keywords": ["wifi calling", "signal"]
-      },
-      {
-        "customer_response": "If I stay, can you recommend anything to make it better?",
+        "customer_response": "It’s worse upstairs.",
+        "customer_response_good": "Upstairs is tricky — any suggestions?",
+        "customer_response_bad": "Upstairs… you’re not really helping.",
         "behaviours": ["recommend", "confidence"],
-        "keywords": ["recommend", "settings"]
+        "keywords": ["coverage", "signal"]
       },
       {
-        "customer_response": "How do I get a PAC or STAC code if I decide to leave?",
-        "behaviours": ["compliance", "accuracy"],
-        "keywords": ["pac", "stac", "leave"]
-      },
-      {
-        "customer_response": "Anything else I should think about before switching?",
-        "behaviours": ["probing", "clarity"],
-        "keywords": ["anything else", "switch"]
+        "customer_response": "Okay, I’ll try that.",
+        "customer_response_good": "Thanks — anything else I should try?",
+        "customer_response_bad": "Not sure that’ll help.",
+        "behaviours": ["conversation", "rapport"],
+        "keywords": ["anything else"]
       }
     ]
   },
+
   {
-    "opening": "I want to cancel my contract. How do I do that?",
+    "opening": "I want a new phone but I don’t know which one to pick.",
     "steps": [
       {
-        "customer_response": "I just don't need the phone anymore.",
-        "behaviours": ["empathy", "ownership", "understand"],
-        "keywords": ["cancel", "contract", "pac code"]
+        "customer_response": "I mostly use it for photos.",
+        "customer_response_good": "Nice, thanks — what phone would you recommend for photos?",
+        "customer_response_bad": "Photos… you’re not giving me any advice.",
+        "behaviours": ["probing", "recommend"],
+        "keywords": ["camera", "photos"]
       },
       {
-        "customer_response": "Will I have any fees?",
-        "behaviours": ["clarity", "explain"],
-        "keywords": ["early termination", "remaining balance", "billing"]
+        "customer_response": "Battery life matters too.",
+        "customer_response_good": "Battery matters — what’s your top pick?",
+        "customer_response_bad": "Battery… still not sure you’re helping.",
+        "behaviours": ["confidence", "accuracy"],
+        "keywords": ["battery", "recommend"]
       },
       {
-        "customer_response": "Do I need a PAC or STAC code?",
-        "behaviours": ["accuracy", "compliance"],
-        "keywords": ["pac", "stac", "switch"]
+        "customer_response": "I don’t want to spend loads.",
+        "customer_response_good": "Thanks — what’s the best value option?",
+        "customer_response_bad": "Not helpful… what’s the cheapest?",
+        "behaviours": ["empathy", "ownership"],
+        "keywords": ["budget", "value"]
       },
       {
-        "customer_response": "How long does it take for the cancellation to go through?",
-        "behaviours": ["clarity", "accuracy"],
-        "keywords": ["timescale", "process"]
-      },
-      {
-        "customer_response": "Will my number stop working straight away?",
-        "behaviours": ["accuracy", "clarity"],
-        "keywords": ["number", "service", "stop"]
-      },
-      {
-        "customer_response": "Can I move to SIM-only instead of fully cancelling?",
-        "behaviours": ["solution", "recommend"],
-        "keywords": ["sim only", "change", "options"]
-      },
-      {
-        "customer_response": "What happens to any remaining balance on the phone?",
-        "behaviours": ["compliance", "accuracy"],
-        "keywords": ["remaining balance", "handset", "finance"]
-      },
-      {
-        "customer_response": "If I change my mind, can I reverse the cancellation?",
-        "behaviours": ["clarity", "compliance"],
-        "keywords": ["reverse", "cancel", "policy"]
-      },
-      {
-        "customer_response": "Can you summarise what I need to do step by step?",
-        "behaviours": ["confidence", "clarity"],
-        "keywords": ["summary", "steps"]
-      },
-      {
-        "customer_response": "Anything else I should know before I cancel?",
-        "behaviours": ["probing", "clarity"],
-        "keywords": ["anything else", "cancel"]
+        "customer_response": "Okay, that sounds good.",
+        "customer_response_good": "Thanks — anything else I should know?",
+        "customer_response_bad": "Hmm… not convinced.",
+        "behaviours": ["conversation", "rapport"],
+        "keywords": ["anything else"]
       }
     ]
-  }
-]
+  },
+
+  {
+    "opening": "I’m thinking about switching from another network.",
+    "steps": [
+      {
+        "customer_response": "How do I keep my number?",
+        "customer_response_good": "Thanks — how do I keep my number?",
+        "customer_response_bad": "You’re not explaining PAC codes properly.",
+        "behaviours": ["accuracy", "clarity"],
+        "keywords": ["pac", "stac", "keep number"]
+      },
+      {
+        "customer_response": "Does Tesco have good coverage?",
+        "customer_response_good": "Nice — what’s coverage like?",
+        "customer_response_bad": "Coverage… you’re not giving me confidence.",
+        "behaviours": ["knowledge", "confidence"],
+        "keywords": ["coverage", "signal"]
+      },
+      {
+        "customer_response": "What about data speeds?",
+        "customer_response_good": "Thanks — what speeds can I expect?",
+        "customer_response_bad": "Speeds… you’re not helping.",
+        "behaviours": ["accuracy", "helpful"],
+        "keywords": ["4g", "5g", "speed"]
+      },
+      {
+        "customer_response": "Okay, sounds alright.",
+        "customer_response_good": "Thanks — anything else I should know?",
+        "customer_response_bad": "Not sure that helps.",
+        "behaviours": ["conversation", "rapport"],
+        "keywords": ["anything else"]
+      }
+    ]
+  },
+
+  {
+    "opening": "My phone keeps running out of storage.",
+    "steps": [
+      {
+        "customer_response": "I’ve got loads of photos.",
+        "customer_response_good": "Thanks — what should I do with them?",
+        "customer_response_bad": "Photos… you’re not helping.",
+        "behaviours": ["probing", "helpful"],
+        "keywords": ["photos", "storage"]
+      },
+      {
+        "customer_response": "Apps keep crashing too.",
+        "customer_response_good": "Thanks — any idea why?",
+        "customer_response_bad": "Apps… you’re not explaining anything.",
+        "behaviours": ["accuracy", "recommend"],
+        "keywords": ["storage", "apps"]
+      },
+      {
+        "customer_response": "Should I upgrade?",
+        "customer_response_good": "Nice — what do you recommend?",
+        "customer_response_bad": "Upgrade… you’re not giving advice.",
+        "behaviours": ["confidence", "ownership"],
+        "keywords": ["upgrade", "recommend"]
+      }
+    ]
+  },
+
+  {
+    "opening": "I run a small business — can Tesco help with phones?",
+    "steps": [
+      {
+        "customer_response": "I need something reliable.",
+        "customer_response_good": "Thanks — what reliable phone do you recommend?",
+        "customer_response_bad": "Reliable… you’re not helping.",
+        "behaviours": ["recommend", "confidence"],
+        "keywords": ["reliable", "business"]
+      },
+      {
+        "customer_response": "I need good signal for calls.",
+        "customer_response_good": "Nice — what’s coverage like?",
+        "customer_response_bad": "Signal… you’re not explaining.",
+        "behaviours": ["accuracy", "knowledge"],
+        "keywords": ["coverage", "signal"]
+      },
+      {
+        "customer_response": "What about data?",
+        "customer_response_good": "Thanks — what data plan do you suggest?",
+        "customer_response_bad": "Data… still not helpful.",
+        "behaviours": ["probing", "recommend"],
+        "keywords": ["data", "plan"]
+      }
+    ]
+  },
+
+  {
+    "opening": "I’m confused about my bill — it’s higher than usual.",
+    "steps": [
+      {
+        "customer_response": "It jumped by £10 this month.",
+        "customer_response_good": "Thanks — any idea why?",
+        "customer_response_bad": "£10… you’re not explaining.",
+        "behaviours": ["empathy", "probing"],
+        "keywords": ["bill", "charges"]
+      },
+      {
+        "customer_response": "Could it be extra data?",
+        "customer_response_good": "Thanks — can you check?",
+        "customer_response_bad": "Extra data… you’re not checking.",
+        "behaviours": ["accuracy", "ownership"],
+        "keywords": ["data", "usage"]
+      },
+      {
+        "customer_response": "Okay, that makes sense.",
+        "customer_response_good": "Thanks — anything else I should know?",
+        "customer_response_bad": "Not sure that makes sense.",
+        "behaviours": ["conversation", "rapport"],
+        "keywords": ["anything else"]
+      }
+    ]
+  },
+
+  {
+    "opening": "My phone is really slow lately.",
+    "steps": [
+      {
+        "customer_response": "Apps take ages to load.",
+        "customer_response_good": "Thanks — any idea why?",
+        "customer_response_bad": "Apps… you’re not helping.",
+        "behaviours": ["probing", "accuracy"],
+        "keywords": ["apps", "storage"]
+      },
+      {
+        "customer_response": "Battery drains fast too.",
+        "customer_response_good": "Thanks — what do you suggest?",
+        "customer_response_bad": "Battery… still not helpful.",
+        "behaviours": ["recommend", "confidence"],
+        "keywords": ["battery", "recommend"]
+      },
+      {
+        "customer_response": "Should I upgrade?",
+        "customer_response_good": "Nice — what do you recommend?",
+        "customer_response_bad": "Upgrade… you’re not giving advice.",
+        "behaviours": ["ownership", "confidence"],
+        "keywords": ["upgrade", "contract"]
+      }
+    ]
+  },
+
+  {
+    "opening": "I’m thinking about getting a phone for my child.",
+    "steps": [
+      {
+        "customer_response": "I want
