@@ -1,7 +1,5 @@
 import gradio as gr
 import random
-import json
-import os
 
 # ---------- SCENARIOS (example) ----------
 
@@ -64,7 +62,9 @@ def start_chat(name):
     emotion = "neutral"
     customer_image = f"characters/{customer_type}/{emotion}.png"
 
-    return chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image
+    current_score = sum(scores.values())
+
+    return chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image, current_score
 
 
 # ---------- SCORING ENGINE ----------
@@ -196,7 +196,7 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
 # ---------- GRADIO HANDLERS ----------
 
 def on_start(name):
-    chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image = start_chat(name)
+    chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image, current_score = start_chat(name)
 
     return (
         customer_image,
@@ -208,7 +208,8 @@ def on_start(name):
         name,
         finished,
         frustration,
-        customer_type
+        customer_type,
+        current_score
     )
 
 
@@ -227,6 +228,8 @@ def on_send(user_reply, chat_history, scenario, step_index, scores, name, finish
             "content": f"### Final Score: {final_score}\n\n{feedback}"
         })
 
+    current_score = sum(scores.values())
+
     return (
         customer_image,
         format_chat(chat_history),
@@ -237,7 +240,8 @@ def on_send(user_reply, chat_history, scenario, step_index, scores, name, finish
         name,
         finished,
         frustration,
-        customer_type
+        customer_type,
+        current_score
     )
 
 
@@ -249,6 +253,16 @@ with gr.Blocks() as demo:
     with gr.Row():
         image_output = gr.Image(type="filepath", label="Customer")
         chat_output = gr.Textbox(label="Conversation", lines=20)
+
+    # Score bar
+    score_bar = gr.Slider(
+        minimum=0,
+        maximum=50,
+        value=0,
+        step=1,
+        label="Score Progress",
+        interactive=False
+    )
 
     with gr.Row():
         name_input = gr.Textbox(label="Your name")
@@ -281,7 +295,8 @@ with gr.Blocks() as demo:
             name_state,
             finished_state,
             frustration_state,
-            customer_type_state
+            customer_type_state,
+            score_bar
         ]
     )
 
@@ -308,7 +323,8 @@ with gr.Blocks() as demo:
             name_state,
             finished_state,
             frustration_state,
-            customer_type_state
+            customer_type_state,
+            score_bar
         ]
     )
 
