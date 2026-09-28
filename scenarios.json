@@ -288,4 +288,26 @@
     "opening": "I’m thinking about getting a phone for my child.",
     "steps": [
       {
-        "customer_response": "I want
+        "customer_response": "I want something safe.",
+        "customer_response_good": "Thanks — what safe phone do you recommend?",
+        "customer_response_bad": "Safe… you’re not helping.",
+        "behaviours": ["empathy", "recommend"],
+        "keywords": ["safe", "recommend"]
+      },
+      {
+        "customer_response": "I don’t want them using loads of data.",
+        "customer_response_good": "Thanks — what plan do you suggest?",
+        "customer_response_bad": "Data… you’re not explaining.",
+        "behaviours": ["accuracy", "probing"],
+        "keywords": ["data", "plan"]
+      },
+      {
+        "customer_response": "Okay, that sounds good.",
+        "customer_response_good": "Thanks — anything else I should know?",
+        "customer_response_bad": "Not convinced.",
+        "behaviours": ["conversation", "rapport"],
+        "keywords": ["anything else"]
+      }
+    ]
+  }
+]
