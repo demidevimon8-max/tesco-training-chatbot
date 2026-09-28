@@ -39,14 +39,18 @@ def score_reply(user_reply, behaviours, keywords):
         if keyword.lower() in reply:
             knowledge_score += 1
 
-    if any(word in reply for word in ["happy", "help", "support"]):
+    if any(word in reply for word in ["happy", "help", "support", "glad", "no worries"]):
         conversation_score += 1
-    if any(word in reply for word in ["recommend", "suggest"]):
+        rapport_score += 1
+
+    if any(word in reply for word in ["recommend", "suggest", "i think", "i'd go for"]):
         conversation_score += 1
-    if any(word in reply for word in ["anything else", "any other questions"]):
+        confidence_score += 1
+
+    if any(word in reply for word in ["anything else", "any other questions", "is there anything else"]):
         conversation_score += 1
 
-    if any(word in reply for word in ["why", "how often", "since when", "tell me more", "could you explain"]):
+    if any(word in reply for word in ["why", "how often", "since when", "tell me more", "could you explain", "how long"]):
         probing_score += 1
 
     if any(word in reply for word in ["policy", "terms", "conditions", "id", "eligibility", "cooling off"]):
@@ -55,12 +59,12 @@ def score_reply(user_reply, behaviours, keywords):
     if any(word in reply for word in ["thank", "appreciate", "no worries", "that's okay", "glad"]):
         rapport_score += 1
 
-    if any(word in reply for word in ["definitely", "i recommend", "we can", "i can", "we'll"]):
+    if any(word in reply for word in ["definitely", "i recommend", "we can", "i can", "we'll", "what i can do"]):
         confidence_score += 1
 
     if any(word in reply for word in [
         "pac", "stac", "wifi calling", "volte", "apn", "clubcard",
-        "cooling off", "24 month", "30 day"
+        "cooling off", "24 month", "30 day", "upgrade", "signal", "coverage"
     ]):
         accuracy_score += 1
 
@@ -75,21 +79,32 @@ def score_reply(user_reply, behaviours, keywords):
         accuracy_score
     )
 
-# ⭐ NEW: Frustration logic
+# ⭐ Smarter frustration logic
 def update_frustration(user_reply, step, frustration):
     reply = user_reply.lower()
+    words = user_reply.split()
 
-    # Short replies
-    if len(user_reply.split()) < 4:
+    # Very short replies
+    if len(words) < 2:
         frustration += 2
-
-    # Negative or dismissive replies
-    if any(word in reply for word in ["no", "idk", "don't know", "dunno", "nah"]):
-        frustration += 2
-
-    # Ignoring the step keywords
-    if step and not any(keyword.lower() in reply for keyword in step["keywords"]):
+    elif len(words) < 5:
         frustration += 1
+
+    # Negative or dismissive replies (avoid false positives)
+    negative_phrases = ["idk", "don't know", "dunno", "nah"]
+    if any(phrase in reply for phrase in negative_phrases):
+        frustration += 2
+
+    if reply.strip() in ["no", "nope"]:
+        frustration += 2
+
+    # Ignoring the step keywords (only if reply is generic)
+    if step:
+        keyword_hit = any(keyword.lower() in reply for keyword in step["keywords"])
+        if not keyword_hit:
+            generic_replies = ["ok", "okay", "sure", "alright", "yeah", "right"]
+            if reply in generic_replies or len(words) < 6:
+                frustration += 1
 
     return frustration
 
@@ -101,6 +116,22 @@ def frustration_response(frustration):
     if frustration < 6:
         return "I'm starting to feel like you're not really helping me."
     return "You know what, I think I'll leave it. Thanks anyway."
+
+# ⭐ Branching customer response based on performance
+def get_customer_response(step, scores, frustration):
+    if step is None:
+        return "Thanks, keep going or type END to finish."
+
+    # If frustration is already high, customer is more negative
+    if frustration >= 4 and "customer_response_bad" in step:
+        return step["customer_response_bad"]
+
+    # If rapport + conversation are good, use positive branch if available
+    if (scores["rapport"] + scores["conversation"]) >= 2 and "customer_response_good" in step:
+        return step["customer_response_good"]
+
+    # Default response
+    return step.get("customer_response", "Okay, go on.")
 
 def record_performance(
     name,
@@ -160,7 +191,6 @@ def start_chat(name):
 
     return chat_history, scenario, step_index, scores, name, finished, frustration
 
-# ⭐ FULLY REWRITTEN chat_step WITH FRUSTRATION SYSTEM
 def chat_step(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration):
     if finished:
         chat_history.append(("System", "Scenario already finished. Start a new one to continue."))
@@ -175,10 +205,10 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
     # Update frustration
     frustration = update_frustration(user_reply, step, frustration)
 
-    # Customer reaction
+    # Customer reaction from frustration
     reaction = frustration_response(frustration)
 
-    # Customer leaves
+    # Customer leaves if too frustrated
     if reaction and frustration >= 6:
         chat_history.append(("You", user_reply))
         chat_history.append(("Customer", reaction))
@@ -186,7 +216,7 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
         finished = True
         return chat_history, scenario, step_index, scores, name, finished, frustration
 
-    # Normal scoring
+    # Scoring
     if step:
         (
             b, k, c,
@@ -211,14 +241,15 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
 
     chat_history.append(("You", user_reply))
 
-    # Customer reacts negatively but doesn't leave
-    if reaction:
+    # If frustration caused a reaction but not a walk‑away
+    if reaction and frustration < 6:
         chat_history.append(("Customer", reaction))
         return chat_history, scenario, step_index, scores, name, finished, frustration
 
-    # Normal step progression
+    # Structured steps
     if step_index < len(scenario["steps"]):
-        chat_history.append(("Customer", step["customer_response"]))
+        customer_text = get_customer_response(step, scores, frustration)
+        chat_history.append(("Customer", customer_text))
         step_index += 1
 
         if step_index == len(scenario["steps"]):
@@ -256,13 +287,26 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
         chat_history.append(("System", feedback_text))
         finished = True
 
+        record_performance(
+            name,
+            scenario,
+            scores["behaviour"],
+            scores["knowledge"],
+            scores["conversation"],
+            scores["probing"],
+            scores["compliance"],
+            scores["rapport"],
+            scores["confidence"],
+            scores["accuracy"],
+            total
+        )
+
         return chat_history, scenario, step_index, scores, name, finished, frustration
 
     chat_history.append(("Customer", "Thanks, keep going or type END to finish."))
 
     return chat_history, scenario, step_index, scores, name, finished, frustration
 
-# ⭐ Correct Gradio 4.x message format
 def format_chat(chat_history):
     formatted = []
     for speaker, text in chat_history:
