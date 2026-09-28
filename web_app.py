@@ -2,7 +2,6 @@ import gradio as gr
 import random
 
 # ---------- SCENARIOS (example) ----------
-
 SCENARIOS = [
     {
         "name": "Billing Issue – Overcharge",
@@ -25,7 +24,6 @@ SCENARIOS = [
 ]
 
 # ---------- HELPER FUNCTIONS ----------
-
 def format_chat(chat_history):
     text = ""
     for msg in chat_history:
@@ -40,13 +38,12 @@ def start_chat(name):
     scenario = random.choice(SCENARIOS)
     chat_history = []
 
-    # Intro line
     chat_history.append({
         "role": "assistant",
         "content": f"Scenario: {scenario['name']}\n\nCustomer: {scenario['steps'][0]['customer']}"
     })
 
-    step_index = 1  # we've already shown step 0
+    step_index = 1
     scores = {
         "empathy": 0,
         "accuracy": 0,
@@ -55,20 +52,16 @@ def start_chat(name):
         "de_escalation": 0
     }
     finished = False
-    frustration = 2  # starting mid-level
+    frustration = 2
     customer_type = scenario["customer_type"]
 
-    # initial emotion
-    emotion = "neutral"
-    customer_image = f"characters/{customer_type}/{emotion}.png"
-
-    current_score = sum(scores.values())
+    customer_image = f"characters/{customer_type}/neutral.png"
+    current_score = 0
 
     return chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image, current_score
 
 
 # ---------- SCORING ENGINE ----------
-
 def score_reply(user_reply, customer_message, frustration_before, frustration_after):
     score = {
         "empathy": 0,
@@ -78,31 +71,26 @@ def score_reply(user_reply, customer_message, frustration_before, frustration_af
         "de_escalation": 0
     }
 
-    # Empathy
     if any(word in user_reply.lower() for word in ["sorry", "understand", "appreciate", "thanks for your patience"]):
         score["empathy"] = 2
     elif any(word in user_reply.lower() for word in ["okay", "alright"]):
         score["empathy"] = 1
 
-    # Accuracy (simple keyword check)
     if any(word in user_reply.lower() for word in ["plan", "contract", "upgrade", "billing", "coverage"]):
         score["accuracy"] = 2
     else:
         score["accuracy"] = 1
 
-    # Professionalism
     if user_reply.strip().endswith("."):
         score["professionalism"] = 2
     else:
         score["professionalism"] = 1
 
-    # Problem solving
     if any(word in user_reply.lower() for word in ["let me", "i can", "here's what", "next step", "we can"]):
         score["problem_solving"] = 2
     else:
         score["problem_solving"] = 1
 
-    # De-escalation
     if frustration_after < frustration_before:
         score["de_escalation"] = 2
     elif frustration_after == frustration_before:
@@ -144,22 +132,46 @@ def generate_feedback(scores):
     return "\n".join(feedback)
 
 
-# ---------- CORE CHAT LOGIC ----------
+# ---------- REAL-TIME COACHING ----------
+def live_coaching(user_reply):
+    text = user_reply.lower()
+    tips = []
 
+    # Empathy
+    if not any(w in text for w in ["sorry", "understand", "appreciate", "thanks for your patience"]):
+        tips.append("Add empathy: e.g. \"I'm sorry about this\" or \"I understand this is frustrating.\"")
+
+    # Professionalism
+    if "!" in text:
+        tips.append("Avoid exclamation marks — keep tone calm and professional.")
+    if len(user_reply.strip()) < 10:
+        tips.append("Give a fuller reply with clear steps or reassurance.")
+
+    # Problem solving
+    if not any(w in text for w in ["let me", "i can", "we can", "here's what", "next step"]):
+        tips.append("Offer a next step: e.g. \"Let me check your account\" or \"Here's what we can do.\"")
+
+    # De-escalation language
+    if not any(w in text for w in ["help", "support", "resolve", "sort this"]):
+        tips.append("Use calming language: \"I'll do my best to resolve this for you.\"")
+
+    if not tips:
+        return "✅ This reply looks strong: empathetic, professional, and solution-focused."
+
+    return "Live coaching:\n\n- " + "\n- ".join(tips)
+
+
+# ---------- CORE CHAT LOGIC ----------
 def chat_step(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration, customer_type):
     if finished:
         return chat_history, scenario, step_index, scores, name, finished, frustration, None
 
-    # Current customer message
     customer_message = scenario["steps"][step_index]["customer"]
 
-    # Add user's reply
     chat_history.append({"role": "user", "content": user_reply})
 
-    # Frustration before
     frustration_before = frustration
 
-    # Update frustration (simple rules)
     if any(word in user_reply.lower() for word in ["no", "can't", "won't", "not possible"]):
         frustration += 1
     elif any(word in user_reply.lower() for word in ["sure", "absolutely", "happy", "help"]):
@@ -167,20 +179,16 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
 
     frustration = max(0, min(frustration, 10))
 
-    # Score reply
     score = score_reply(user_reply, customer_message, frustration_before, frustration)
     for k, v in score.items():
         scores[k] = scores.get(k, 0) + v
 
-    # Add customer response
     chat_history.append({"role": "assistant", "content": customer_message})
 
-    # Move to next step
     step_index += 1
     if step_index >= len(scenario["steps"]):
         finished = True
 
-    # Emotion based on frustration
     if frustration < 2:
         emotion = "happy"
     elif frustration < 4:
@@ -194,9 +202,10 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
 
 
 # ---------- GRADIO HANDLERS ----------
-
 def on_start(name):
     chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image, current_score = start_chat(name)
+
+    coaching_text = "Start typing your reply to see live coaching tips."
 
     return (
         customer_image,
@@ -209,7 +218,8 @@ def on_start(name):
         finished,
         frustration,
         customer_type,
-        current_score
+        current_score,
+        coaching_text
     )
 
 
@@ -218,7 +228,6 @@ def on_send(user_reply, chat_history, scenario, step_index, scores, name, finish
         user_reply, chat_history, scenario, step_index, scores, name, finished, frustration, customer_type
     )
 
-    # End of scenario: add final score + feedback
     if finished:
         final_score = sum(scores.values())
         feedback = generate_feedback(scores)
@@ -229,6 +238,7 @@ def on_send(user_reply, chat_history, scenario, step_index, scores, name, finish
         })
 
     current_score = sum(scores.values())
+    coaching_text = live_coaching(user_reply)
 
     return (
         customer_image,
@@ -241,12 +251,16 @@ def on_send(user_reply, chat_history, scenario, step_index, scores, name, finish
         finished,
         frustration,
         customer_type,
-        current_score
+        current_score,
+        coaching_text
     )
 
 
-# ---------- UI ----------
+def on_live_coaching(user_reply):
+    return live_coaching(user_reply)
 
+
+# ---------- UI ----------
 with gr.Blocks() as demo:
     gr.Markdown("# Tesco Mobile Training Simulator")
 
@@ -254,13 +268,18 @@ with gr.Blocks() as demo:
         image_output = gr.Image(type="filepath", label="Customer")
         chat_output = gr.Textbox(label="Conversation", lines=20)
 
-    # Score bar
     score_bar = gr.Slider(
         minimum=0,
         maximum=50,
         value=0,
         step=1,
         label="Score Progress",
+        interactive=False
+    )
+
+    coaching_box = gr.Textbox(
+        label="Real-Time Coaching",
+        lines=6,
         interactive=False
     )
 
@@ -272,7 +291,6 @@ with gr.Blocks() as demo:
         user_input = gr.Textbox(label="Your reply")
         send_button = gr.Button("Send")
 
-    # State
     chat_state = gr.State([])
     scenario_state = gr.State(None)
     step_state = gr.State(0)
@@ -296,7 +314,8 @@ with gr.Blocks() as demo:
             finished_state,
             frustration_state,
             customer_type_state,
-            score_bar
+            score_bar,
+            coaching_box
         ]
     )
 
@@ -324,10 +343,16 @@ with gr.Blocks() as demo:
             finished_state,
             frustration_state,
             customer_type_state,
-            score_bar
+            score_bar,
+            coaching_box
         ]
+    )
+
+    user_input.change(
+        on_live_coaching,
+        inputs=[user_input],
+        outputs=[coaching_box]
     )
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0")
-
