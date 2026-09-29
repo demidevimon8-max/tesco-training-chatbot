@@ -1,7 +1,7 @@
 import gradio as gr
 import random
 
-# ---------- SCENARIOS (example) ----------
+# ---------- SCENARIOS ----------
 SCENARIOS = [
     {
         "name": "Billing Issue – Overcharge",
@@ -60,7 +60,6 @@ def start_chat(name):
 
     return chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image, current_score
 
-
 # ---------- SCORING ENGINE ----------
 def score_reply(user_reply, customer_message, frustration_before, frustration_after):
     score = {
@@ -71,26 +70,33 @@ def score_reply(user_reply, customer_message, frustration_before, frustration_af
         "de_escalation": 0
     }
 
-    if any(word in user_reply.lower() for word in ["sorry", "understand", "appreciate", "thanks for your patience"]):
+    text = user_reply.lower()
+
+    # Empathy
+    if any(word in text for word in ["sorry", "understand", "appreciate", "thanks for your patience"]):
         score["empathy"] = 2
-    elif any(word in user_reply.lower() for word in ["okay", "alright"]):
+    elif any(word in text for word in ["okay", "alright"]):
         score["empathy"] = 1
 
-    if any(word in user_reply.lower() for word in ["plan", "contract", "upgrade", "billing", "coverage"]):
+    # Accuracy
+    if any(word in text for word in ["plan", "contract", "upgrade", "billing", "coverage"]):
         score["accuracy"] = 2
     else:
         score["accuracy"] = 1
 
+    # Professionalism
     if user_reply.strip().endswith("."):
         score["professionalism"] = 2
     else:
         score["professionalism"] = 1
 
-    if any(word in user_reply.lower() for word in ["let me", "i can", "here's what", "next step", "we can"]):
+    # Problem solving
+    if any(word in text for word in ["let me", "i can", "here's what", "next step", "we can"]):
         score["problem_solving"] = 2
     else:
         score["problem_solving"] = 1
 
+    # De-escalation
     if frustration_after < frustration_before:
         score["de_escalation"] = 2
     elif frustration_after == frustration_before:
@@ -131,7 +137,6 @@ def generate_feedback(scores):
 
     return "\n".join(feedback)
 
-
 # ---------- REAL-TIME COACHING ----------
 def live_coaching(user_reply):
     text = user_reply.lower()
@@ -160,6 +165,66 @@ def live_coaching(user_reply):
 
     return "Live coaching:\n\n- " + "\n- ".join(tips)
 
+# ---------- TONE METER (BADGE) ----------
+def tone_score(text: str) -> int:
+    text = text.lower()
+    if not text.strip():
+        return 50  # neutral default
+
+    score = 50  # start neutral
+
+    positive_words = ["sorry", "understand", "appreciate", "thanks", "help", "support", "resolve",
+                      "happy", "glad", "no problem", "absolutely", "let me", "i can", "we can"]
+    negative_words = ["no", "can't", "won't", "not possible", "this is wrong", "you need to"]
+
+    for w in positive_words:
+        if w in text:
+            score += 5
+
+    for w in negative_words:
+        if w in text:
+            score -= 7
+
+    if "!" in text:
+        score -= 5
+    if text.isupper() and len(text) > 5:
+        score -= 10
+    if len(text.strip()) < 10:
+        score -= 5
+    if text.strip().endswith("."):
+        score += 3
+
+    score = max(0, min(score, 100))
+    return score
+
+
+def tone_badge(score: int) -> str:
+    if score >= 76:
+        color = "#2ecc71"  # green
+        label = "Calm & Empathetic"
+    elif score >= 51:
+        color = "#f1c40f"  # yellow
+        label = "Neutral / Safe"
+    elif score >= 26:
+        color = "#e67e22"  # orange
+        label = "Needs Softening"
+    else:
+        color = "#e74c3c"  # red
+        label = "Risky / Sharp"
+
+    return f"""
+    <div style="
+        display:inline-block;
+        padding:6px 10px;
+        border-radius:999px;
+        background:{color};
+        color:#ffffff;
+        font-weight:bold;
+        font-size:13px;
+    ">
+        Tone: {score} — {label}
+    </div>
+    """
 
 # ---------- CORE CHAT LOGIC ----------
 def chat_step(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration, customer_type):
@@ -172,9 +237,10 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
 
     frustration_before = frustration
 
-    if any(word in user_reply.lower() for word in ["no", "can't", "won't", "not possible"]):
+    text = user_reply.lower()
+    if any(word in text for word in ["no", "can't", "won't", "not possible"]):
         frustration += 1
-    elif any(word in user_reply.lower() for word in ["sure", "absolutely", "happy", "help"]):
+    elif any(word in text for word in ["sure", "absolutely", "happy", "help"]):
         frustration -= 1
 
     frustration = max(0, min(frustration, 10))
@@ -186,8 +252,7 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
     chat_history.append({"role": "assistant", "content": customer_message})
 
     step_index += 1
-    if step_index >= len(scenario["steps"]):
-        finished = True
+    finished = step_index >= len(scenario["steps"])
 
     if frustration < 2:
         emotion = "happy"
@@ -200,12 +265,12 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
 
     return chat_history, scenario, step_index, scores, name, finished, frustration, customer_image
 
-
 # ---------- GRADIO HANDLERS ----------
 def on_start(name):
     chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image, current_score = start_chat(name)
 
     coaching_text = "Start typing your reply to see live coaching tips."
+    tone_html = tone_badge(50)
 
     return (
         customer_image,
@@ -219,7 +284,8 @@ def on_start(name):
         frustration,
         customer_type,
         current_score,
-        coaching_text
+        coaching_text,
+        tone_html
     )
 
 
@@ -239,6 +305,8 @@ def on_send(user_reply, chat_history, scenario, step_index, scores, name, finish
 
     current_score = sum(scores.values())
     coaching_text = live_coaching(user_reply)
+    tone = tone_score(user_reply)
+    tone_html = tone_badge(tone)
 
     return (
         customer_image,
@@ -252,13 +320,16 @@ def on_send(user_reply, chat_history, scenario, step_index, scores, name, finish
         frustration,
         customer_type,
         current_score,
-        coaching_text
+        coaching_text,
+        tone_html
     )
 
 
-def on_live_coaching(user_reply):
-    return live_coaching(user_reply)
-
+def on_live_update(user_reply):
+    coaching_text = live_coaching(user_reply)
+    tone = tone_score(user_reply)
+    tone_html = tone_badge(tone)
+    return coaching_text, tone_html
 
 # ---------- UI ----------
 with gr.Blocks() as demo:
@@ -282,6 +353,8 @@ with gr.Blocks() as demo:
         lines=6,
         interactive=False
     )
+
+    tone_display = gr.HTML(label="Tone Meter")
 
     with gr.Row():
         name_input = gr.Textbox(label="Your name")
@@ -315,7 +388,8 @@ with gr.Blocks() as demo:
             frustration_state,
             customer_type_state,
             score_bar,
-            coaching_box
+            coaching_box,
+            tone_display
         ]
     )
 
@@ -344,14 +418,15 @@ with gr.Blocks() as demo:
             frustration_state,
             customer_type_state,
             score_bar,
-            coaching_box
+            coaching_box,
+            tone_display
         ]
     )
 
     user_input.change(
-        on_live_coaching,
+        on_live_update,
         inputs=[user_input],
-        outputs=[coaching_box]
+        outputs=[coaching_box, tone_display]
     )
 
 if __name__ == "__main__":
