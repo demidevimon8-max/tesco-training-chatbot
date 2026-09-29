@@ -72,31 +72,26 @@ def score_reply(user_reply, customer_message, frustration_before, frustration_af
 
     text = user_reply.lower()
 
-    # Empathy
     if any(word in text for word in ["sorry", "understand", "appreciate", "thanks for your patience"]):
         score["empathy"] = 2
     elif any(word in text for word in ["okay", "alright"]):
         score["empathy"] = 1
 
-    # Accuracy
     if any(word in text for word in ["plan", "contract", "upgrade", "billing", "coverage"]):
         score["accuracy"] = 2
     else:
         score["accuracy"] = 1
 
-    # Professionalism
     if user_reply.strip().endswith("."):
         score["professionalism"] = 2
     else:
         score["professionalism"] = 1
 
-    # Problem solving
     if any(word in text for word in ["let me", "i can", "here's what", "next step", "we can"]):
         score["problem_solving"] = 2
     else:
         score["problem_solving"] = 1
 
-    # De-escalation
     if frustration_after < frustration_before:
         score["de_escalation"] = 2
     elif frustration_after == frustration_before:
@@ -142,21 +137,17 @@ def live_coaching(user_reply):
     text = user_reply.lower()
     tips = []
 
-    # Empathy
     if not any(w in text for w in ["sorry", "understand", "appreciate", "thanks for your patience"]):
         tips.append("Add empathy: e.g. \"I'm sorry about this\" or \"I understand this is frustrating.\"")
 
-    # Professionalism
     if "!" in text:
         tips.append("Avoid exclamation marks — keep tone calm and professional.")
     if len(user_reply.strip()) < 10:
         tips.append("Give a fuller reply with clear steps or reassurance.")
 
-    # Problem solving
     if not any(w in text for w in ["let me", "i can", "we can", "here's what", "next step"]):
         tips.append("Offer a next step: e.g. \"Let me check your account\" or \"Here's what we can do.\"")
 
-    # De-escalation language
     if not any(w in text for w in ["help", "support", "resolve", "sort this"]):
         tips.append("Use calming language: \"I'll do my best to resolve this for you.\"")
 
@@ -165,13 +156,13 @@ def live_coaching(user_reply):
 
     return "Live coaching:\n\n- " + "\n- ".join(tips)
 
-# ---------- TONE METER (BADGE) ----------
+# ---------- TONE METER ----------
 def tone_score(text: str) -> int:
     text = text.lower()
     if not text.strip():
-        return 50  # neutral default
+        return 50
 
-    score = 50  # start neutral
+    score = 50
 
     positive_words = ["sorry", "understand", "appreciate", "thanks", "help", "support", "resolve",
                       "happy", "glad", "no problem", "absolutely", "let me", "i can", "we can"]
@@ -194,22 +185,21 @@ def tone_score(text: str) -> int:
     if text.strip().endswith("."):
         score += 3
 
-    score = max(0, min(score, 100))
-    return score
+    return max(0, min(score, 100))
 
 
 def tone_badge(score: int) -> str:
     if score >= 76:
-        color = "#2ecc71"  # green
+        color = "#2ecc71"
         label = "Calm & Empathetic"
     elif score >= 51:
-        color = "#f1c40f"  # yellow
+        color = "#f1c40f"
         label = "Neutral / Safe"
     elif score >= 26:
-        color = "#e67e22"  # orange
+        color = "#e67e22"
         label = "Needs Softening"
     else:
-        color = "#e74c3c"  # red
+        color = "#e74c3c"
         label = "Risky / Sharp"
 
     return f"""
@@ -225,6 +215,10 @@ def tone_badge(score: int) -> str:
         Tone: {score} — {label}
     </div>
     """
+
+# ---------- CHARACTER SIZE ----------
+def resize_character(size):
+    return gr.update(height=size, width=size)
 
 # ---------- CORE CHAT LOGIC ----------
 def chat_step(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration, customer_type):
@@ -275,7 +269,7 @@ def on_start(name):
     return (
         customer_image,
         format_chat(chat_history),
-        chat_history,
+        chat_state,
         scenario,
         step_index,
         scores,
@@ -336,8 +330,22 @@ with gr.Blocks() as demo:
     gr.Markdown("# Tesco Mobile Training Simulator")
 
     with gr.Row():
-        image_output = gr.Image(type="filepath", label="Customer")
+        image_output = gr.Image(type="filepath", label="Customer", height=350, width=350)
         chat_output = gr.Textbox(label="Conversation", lines=20)
+
+    size_slider = gr.Slider(
+        minimum=150,
+        maximum=600,
+        value=350,
+        step=10,
+        label="Character Size"
+    )
+
+    size_slider.change(
+        resize_character,
+        inputs=size_slider,
+        outputs=image_output
+    )
 
     score_bar = gr.Slider(
         minimum=0,
