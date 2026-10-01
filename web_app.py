@@ -269,7 +269,7 @@ def on_start(name):
     return (
         customer_image,
         format_chat(chat_history),
-        chat_state,
+        chat_history,          # FIXED: return chat_history, not chat_state
         scenario,
         step_index,
         scores,
