@@ -1,25 +1,130 @@
 import gradio as gr
 import random
 
-# ---------- SCENARIOS ----------
+# ---------- SCENARIOS WITH BRANCHING ----------
 SCENARIOS = [
     {
         "name": "Billing Issue – Overcharge",
         "customer_type": "adult_male",
-        "steps": [
-            {"customer": "Hi, I've just checked my bill and it's way higher than usual. What's going on?"},
-            {"customer": "I don't remember agreeing to any extra charges. This is really frustrating."},
-            {"customer": "So what are you going to do about it?"}
-        ]
-    },
-    {
-        "name": "Upgrade Confusion – Contract",
-        "customer_type": "adult_female",
-        "steps": [
-            {"customer": "I was told I could upgrade early, but now I'm being told I can't. Which is it?"},
-            {"customer": "I've been with you for years, this feels really unfair."},
-            {"customer": "Can you explain clearly what my options are?"}
-        ]
+        "start": "start",
+        "steps": {
+            "start": {
+                "customer": "Hi, my bill is higher than usual.",
+                "branches": {
+                    "good": "explain",
+                    "neutral": "repeat",
+                    "bad": "angry"
+                },
+                "keywords": {
+                    "check your account": "account_check",
+                    "account": "account_check",
+                    "upgrade": "upgrade_offer",
+                    "usage": "usage_check"
+                }
+            },
+
+            "account_check": {
+                "customer": "Thanks, please check it for me.",
+                "branches": {
+                    "good": "resolve",
+                    "neutral": "doubt",
+                    "bad": "annoyed"
+                }
+            },
+
+            "upgrade_offer": {
+                "customer": "Upgrade? I didn’t think I was eligible.",
+                "branches": {
+                    "good": "upgrade_explain",
+                    "neutral": "upgrade_confused",
+                    "bad": "upgrade_annoyed"
+                }
+            },
+
+            "upgrade_explain": {
+                "customer": "Okay, that makes sense. What would the new plan look like?",
+                "branches": {
+                    "good": "resolve",
+                    "neutral": "doubt",
+                    "bad": "annoyed"
+                }
+            },
+
+            "upgrade_confused": {
+                "customer": "I’m still not sure how this upgrade works.",
+                "branches": {
+                    "good": "upgrade_explain",
+                    "neutral": "repeat",
+                    "bad": "angry"
+                }
+            },
+
+            "upgrade_annoyed": {
+                "customer": "This sounds like you’re just trying to sell me something.",
+                "end": True
+            },
+
+            "usage_check": {
+                "customer": "Yes please, check my usage.",
+                "branches": {
+                    "good": "resolve",
+                    "neutral": "doubt",
+                    "bad": "annoyed"
+                }
+            },
+
+            "explain": {
+                "customer": "Okay, thanks for explaining. Can you check my usage?",
+                "branches": {
+                    "good": "resolve",
+                    "neutral": "doubt",
+                    "bad": "annoyed"
+                },
+                "keywords": {
+                    "usage": "usage_check",
+                    "check your account": "account_check",
+                    "upgrade": "upgrade_offer"
+                }
+            },
+
+            "repeat": {
+                "customer": "Like I said, my bill is higher. Why?",
+                "branches": {
+                    "good": "explain",
+                    "neutral": "repeat",
+                    "bad": "angry"
+                },
+                "keywords": {
+                    "account": "account_check",
+                    "usage": "usage_check",
+                    "upgrade": "upgrade_offer"
+                }
+            },
+
+            "angry": {
+                "customer": "This is ridiculous. I’m sick of this.",
+                "end": True
+            },
+
+            "resolve": {
+                "customer": "Great, thanks for sorting that.",
+                "end": True
+            },
+
+            "doubt": {
+                "customer": "I’m not sure that’s right…",
+                "branches": {
+                    "good": "resolve",
+                    "neutral": "repeat",
+                    "bad": "angry"
+                }
+            },
+
+            "annoyed": {
+                "customer": "You're not helping at all.",
+                "end": True
+            }
+        }
     }
 ]
 
@@ -38,12 +143,15 @@ def start_chat(name):
     scenario = random.choice(SCENARIOS)
     chat_history = []
 
+    start_node = scenario["start"]
+    node_data = scenario["steps"][start_node]
+
     chat_history.append({
         "role": "assistant",
-        "content": f"Scenario: {scenario['name']}\n\nCustomer: {scenario['steps'][0]['customer']}"
+        "content": f"Scenario: {scenario['name']}\n\nCustomer: {node_data['customer']}"
     })
 
-    step_index = 1
+    current_node = start_node
     scores = {
         "empathy": 0,
         "accuracy": 0,
@@ -58,7 +166,7 @@ def start_chat(name):
     customer_image = f"characters/{customer_type}/neutral.png"
     current_score = 0
 
-    return chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image, current_score
+    return chat_history, scenario, current_node, scores, name, finished, frustration, customer_type, customer_image, current_score
 
 # ---------- SCORING ENGINE ----------
 def score_reply(user_reply, customer_message, frustration_before, frustration_after):
@@ -77,7 +185,7 @@ def score_reply(user_reply, customer_message, frustration_before, frustration_af
     elif any(word in text for word in ["okay", "alright"]):
         score["empathy"] = 1
 
-    if any(word in text for word in ["plan", "contract", "upgrade", "billing", "coverage"]):
+    if any(word in text for word in ["plan", "contract", "upgrade", "billing", "coverage", "account", "usage"]):
         score["accuracy"] = 2
     else:
         score["accuracy"] = 1
@@ -87,7 +195,7 @@ def score_reply(user_reply, customer_message, frustration_before, frustration_af
     else:
         score["professionalism"] = 1
 
-    if any(word in text for word in ["let me", "i can", "here's what", "next step", "we can"]):
+    if any(word in text for word in ["let me", "i can", "here's what", "next step", "we can", "check", "look into"]):
         score["problem_solving"] = 2
     else:
         score["problem_solving"] = 1
@@ -145,7 +253,7 @@ def live_coaching(user_reply):
     if len(user_reply.strip()) < 10:
         tips.append("Give a fuller reply with clear steps or reassurance.")
 
-    if not any(w in text for w in ["let me", "i can", "we can", "here's what", "next step"]):
+    if not any(w in text for w in ["let me", "i can", "we can", "here's what", "next step", "check", "look into"]):
         tips.append("Offer a next step: e.g. \"Let me check your account\" or \"Here's what we can do.\"")
 
     if not any(w in text for w in ["help", "support", "resolve", "sort this"]):
@@ -164,9 +272,14 @@ def tone_score(text: str) -> int:
 
     score = 50
 
-    positive_words = ["sorry", "understand", "appreciate", "thanks", "help", "support", "resolve",
-                      "happy", "glad", "no problem", "absolutely", "let me", "i can", "we can"]
-    negative_words = ["no", "can't", "won't", "not possible", "this is wrong", "you need to"]
+    positive_words = [
+        "sorry", "understand", "appreciate", "thanks", "help", "support", "resolve",
+        "happy", "glad", "no problem", "absolutely", "let me", "i can", "we can",
+        "check your account", "check your usage", "upgrade"
+    ]
+    negative_words = [
+        "no", "can't", "won't", "not possible", "this is wrong", "you need to"
+    ]
 
     for w in positive_words:
         if w in text:
@@ -220,12 +333,52 @@ def tone_badge(score: int) -> str:
 def resize_character(size):
     return gr.update(height=size, width=size)
 
-# ---------- CORE CHAT LOGIC ----------
-def chat_step(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration, customer_type):
-    if finished:
-        return chat_history, scenario, step_index, scores, name, finished, frustration, None
+# ---------- BRANCHING ENGINE ----------
+def get_next_node(scenario, current_node, user_reply, frustration):
+    steps = scenario["steps"]
+    node = steps[current_node]
+    text = user_reply.lower()
 
-    customer_message = scenario["steps"][step_index]["customer"]
+    # 1) Keyword-based hidden branches
+    keywords = node.get("keywords", {})
+    for kw, target in keywords.items():
+        if kw.lower() in text:
+            return target, frustration
+
+    # 2) Tone-based branches
+    tone = tone_score(user_reply)
+    branch_type = None
+    if tone >= 76:
+        branch_type = "good"
+    elif tone >= 51:
+        branch_type = "neutral"
+    else:
+        branch_type = "bad"
+
+    branches = node.get("branches", {})
+    target = branches.get(branch_type)
+
+    # 3) If no branch found, stay on same node
+    if not target:
+        target = current_node
+
+    # 4) Frustration adjustment based on tone
+    if tone >= 76:
+        frustration -= 1
+    elif tone <= 25:
+        frustration += 1
+
+    frustration = max(0, min(frustration, 10))
+    return target, frustration
+
+# ---------- CORE CHAT LOGIC ----------
+def chat_step(user_reply, chat_history, scenario, current_node, scores, name, finished, frustration, customer_type):
+    if finished:
+        return chat_history, scenario, current_node, scores, name, finished, frustration, None
+
+    steps = scenario["steps"]
+    node = steps[current_node]
+    customer_message = node["customer"]
 
     chat_history.append({"role": "user", "content": user_reply})
 
@@ -243,10 +396,14 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
     for k, v in score.items():
         scores[k] = scores.get(k, 0) + v
 
-    chat_history.append({"role": "assistant", "content": customer_message})
+    # Decide next node (keyword + tone)
+    next_node, frustration = get_next_node(scenario, current_node, user_reply, frustration)
 
-    step_index += 1
-    finished = step_index >= len(scenario["steps"])
+    next_node_data = steps[next_node]
+    chat_history.append({"role": "assistant", "content": next_node_data["customer"]})
+
+    current_node = next_node
+    finished = next_node_data.get("end", False)
 
     if frustration < 2:
         emotion = "happy"
@@ -257,11 +414,11 @@ def chat_step(user_reply, chat_history, scenario, step_index, scores, name, fini
 
     customer_image = f"characters/{customer_type}/{emotion}.png"
 
-    return chat_history, scenario, step_index, scores, name, finished, frustration, customer_image
+    return chat_history, scenario, current_node, scores, name, finished, frustration, customer_image
 
 # ---------- GRADIO HANDLERS ----------
 def on_start(name):
-    chat_history, scenario, step_index, scores, name, finished, frustration, customer_type, customer_image, current_score = start_chat(name)
+    chat_history, scenario, current_node, scores, name, finished, frustration, customer_type, customer_image, current_score = start_chat(name)
 
     coaching_text = "Start typing your reply to see live coaching tips."
     tone_html = tone_badge(50)
@@ -269,9 +426,9 @@ def on_start(name):
     return (
         customer_image,
         format_chat(chat_history),
-        chat_history,          # FIXED: return chat_history, not chat_state
+        chat_history,
         scenario,
-        step_index,
+        current_node,
         scores,
         name,
         finished,
@@ -283,9 +440,9 @@ def on_start(name):
     )
 
 
-def on_send(user_reply, chat_history, scenario, step_index, scores, name, finished, frustration, customer_type):
-    chat_history, scenario, step_index, scores, name, finished, frustration, customer_image = chat_step(
-        user_reply, chat_history, scenario, step_index, scores, name, finished, frustration, customer_type
+def on_send(user_reply, chat_history, scenario, current_node, scores, name, finished, frustration, customer_type):
+    chat_history, scenario, current_node, scores, name, finished, frustration, customer_image = chat_step(
+        user_reply, chat_history, scenario, current_node, scores, name, finished, frustration, customer_type
     )
 
     if finished:
@@ -307,7 +464,7 @@ def on_send(user_reply, chat_history, scenario, step_index, scores, name, finish
         format_chat(chat_history),
         chat_history,
         scenario,
-        step_index,
+        current_node,
         scores,
         name,
         finished,
@@ -374,12 +531,13 @@ with gr.Blocks() as demo:
 
     chat_state = gr.State([])
     scenario_state = gr.State(None)
-    step_state = gr.State(0)
+    node_state = gr.State("")  # current_node
     scores_state = gr.State({})
     name_state = gr.State("")
     finished_state = gr.State(False)
     frustration_state = gr.State(2)
     customer_type_state = gr.State("adult_male")
+    score_state = gr.State(0)
 
     start_button.click(
         on_start,
@@ -389,7 +547,7 @@ with gr.Blocks() as demo:
             chat_output,
             chat_state,
             scenario_state,
-            step_state,
+            node_state,
             scores_state,
             name_state,
             finished_state,
@@ -407,7 +565,7 @@ with gr.Blocks() as demo:
             user_input,
             chat_state,
             scenario_state,
-            step_state,
+            node_state,
             scores_state,
             name_state,
             finished_state,
@@ -419,7 +577,7 @@ with gr.Blocks() as demo:
             chat_output,
             chat_state,
             scenario_state,
-            step_state,
+            node_state,
             scores_state,
             name_state,
             finished_state,
