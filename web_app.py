@@ -7,10 +7,6 @@ from datetime import datetime
 PERFORMANCE_FILE = "performance.json"
 SCENARIOS_FILE = "scenarios.json"
 
-# ---------- SIMPLE SCENARIO DEFINITION ----------
-
-DEFAULT_SCENARIO_NAME = "Billing Issue – Data Overcharge"
-
 # ---------- CUSTOMER PERSONALITY PROFILES ----------
 
 CUSTOMER_PROFILES = {
@@ -40,9 +36,7 @@ def load_performance():
     try:
         with open(PERFORMANCE_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            if isinstance(data, list):
-                return data
-            return []
+            return data if isinstance(data, list) else []
     except Exception:
         return []
 
@@ -59,9 +53,8 @@ def save_performance(entry):
 
 def load_scenarios():
     if not os.path.exists(SCENARIOS_FILE):
-        # Fallback: single default scenario
         return {
-            DEFAULT_SCENARIO_NAME: {
+            "Billing Issue – Data Overcharge": {
                 "intro": "I’ve just checked my bill and there’s a huge data charge I wasn’t expecting.",
                 "steps": ["step1", "step2", "step3", "step4", "step5"],
             },
@@ -76,38 +69,34 @@ def load_scenarios():
         }
     try:
         with open(SCENARIOS_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            if isinstance(data, dict):
-                return data
-            return {}
+            return json.load(f)
     except Exception:
         return {}
-
 
 SCENARIOS = load_scenarios()
 
 # ---------- TONE & COACHING HELPERS ----------
 
 def analyse_tone(text):
-    text_lower = text.lower()
-    score = 2  # 1 = negative, 2 = neutral, 3 = positive
+    t = text.lower()
+    score = 2
 
-    if any(w in text_lower for w in ["angry", "annoyed", "ridiculous", "useless", "furious"]):
+    if any(w in t for w in ["angry", "annoyed", "ridiculous", "useless", "furious"]):
         score = 1
-    elif any(w in text_lower for w in ["thank", "great", "helpful", "appreciate", "brilliant"]):
+    elif any(w in t for w in ["thank", "great", "helpful", "appreciate", "brilliant"]):
         score = 3
 
-    if "!" in text and score == 2:
+    if "!" in t and score == 2:
         score = 1
 
     if score == 1:
-        label = "Customer tone: <b style='color:red;'>Negative / Frustrated</b>"
+        label = "<b style='color:red;'>Negative / Frustrated</b>"
     elif score == 3:
-        label = "Customer tone: <b style='color:green;'>Positive / Reassured</b>"
+        label = "<b style='color:green;'>Positive / Reassured</b>"
     else:
-        label = "Customer tone: <b style='color:orange;'>Neutral / Unsure</b>"
+        label = "<b style='color:orange;'>Neutral / Unsure</b>"
 
-    return score, f"<div>{label}</div>"
+    return score, f"<div>Customer tone: {label}</div>"
 
 
 def live_coaching(text):
@@ -117,231 +106,144 @@ def live_coaching(text):
     if "sorry" in t or "apologise" in t:
         tips.append("Good empathy – you’re acknowledging their feelings.")
     else:
-        tips.append("Try adding an apology to show empathy (e.g. 'I’m really sorry this happened').")
+        tips.append("Try adding an apology to show empathy.")
 
-    if any(w in t for w in ["check", "look into", "investigate", "review", "have a look"]):
-        tips.append("Nice – you’re taking ownership and checking the account.")
+    if any(w in t for w in ["check", "look into", "investigate", "review"]):
+        tips.append("Nice – you’re taking ownership.")
     else:
-        tips.append("Offer to check their account and explain what you’ll do.")
+        tips.append("Offer to check their account.")
 
-    if any(w in t for w in ["option", "solution", "can do", "what we can", "next step"]):
-        tips.append("You’re moving towards solutions – keep it practical and clear.")
+    if any(w in t for w in ["option", "solution", "next step"]):
+        tips.append("You’re moving towards solutions.")
     else:
-        tips.append("Move towards a clear solution or next step, not just explanation.")
+        tips.append("Move towards a clear next step.")
 
     if "!" in t and not any(w in t for w in ["thank", "great", "appreciate"]):
-        tips.append("Watch your tone – too many exclamation marks can feel sharp or defensive.")
+        tips.append("Watch your tone — too many exclamation marks can feel sharp.")
 
     return "\n".join(f"• {tip}" for tip in tips)
-
 
 # ---------- DYNAMIC CUSTOMER IMAGE ----------
 
 def get_customer_image(frustration, customer_type="adult_male"):
-    base_path = f"characters/{customer_type}"
+    base = f"characters/{customer_type}"
     if frustration <= 1.4:
-        return f"{base_path}/happy.png"
+        return f"{base}/happy.png"
     elif frustration <= 2.2:
-        return f"{base_path}/neutral.png"
+        return f"{base}/neutral.png"
     else:
-        return f"{base_path}/annoyed.png"
+        return f"{base}/annoyed.png"
 
-
-# ---------- CORE SCORING & EMOTIONAL MEMORY ----------
+# ---------- SCORING ----------
 
 def score_reply(user_text, scores, frustration):
     t = user_text.lower()
 
-    # Empathy
-    if any(w in t for w in ["sorry", "apologise", "understand", "frustrating", "appreciate"]):
-        scores["empathy"] += 1.0
-        frustration = max(1, frustration - 0.2)
+    if any(w in t for w in ["sorry", "apologise", "understand"]):
+        scores["empathy"] += 1
+        frustration -= 0.2
     else:
         scores["empathy"] -= 0.5
-        frustration = min(3, frustration + 0.1)
+        frustration += 0.1
 
-    # Accuracy
-    if any(w in t for w in ["data", "usage", "allowance", "plan", "tariff", "bill"]):
+    if any(w in t for w in ["data", "usage", "allowance", "plan"]):
         scores["accuracy"] += 0.8
     else:
         scores["accuracy"] -= 0.3
 
-    # Professionalism
-    if any(w in t for w in ["please", "thank", "appreciate", "happy to help"]):
+    if any(w in t for w in ["please", "thank", "appreciate"]):
         scores["professionalism"] += 0.5
-    if any(w in t for w in ["mate", "pal", "buddy", "ridiculous", "joke"]):
+    if any(w in t for w in ["mate", "pal", "buddy"]):
         scores["professionalism"] -= 0.8
 
-    # Problem solving
-    if any(w in t for w in ["option", "solution", "credit", "adjust", "review", "investigate", "fix"]):
-        scores["problem_solving"] += 1.0
+    if any(w in t for w in ["option", "solution", "credit", "review"]):
+        scores["problem_solving"] += 1
     else:
         scores["problem_solving"] -= 0.4
 
-    # De-escalation
-    if any(w in t for w in ["i’ll sort", "i’ll look", "let me check", "we can fix", "i’ll do my best"]):
+    if any(w in t for w in ["i’ll sort", "let me check", "we can fix"]):
         scores["de_escalation"] += 0.8
-        frustration = max(1, frustration - 0.3)
+        frustration -= 0.3
     else:
         scores["de_escalation"] -= 0.3
-
-    # Emotional memory
-    if "thank" in t or "appreciate" in t:
-        frustration -= 0.1
-    if "why" in t or "explain" in t:
-        frustration += 0.1
 
     frustration = max(1, min(3, frustration))
 
     for k in scores:
-        scores[k] = max(0.0, min(10.0, scores[k]))
+        scores[k] = max(0, min(10, scores[k]))
 
     return scores, frustration
 
-
-# ---------- EXTENDED BRANCHING & HIDDEN KEYWORDS ----------
+# ---------- CUSTOMER REPLY ----------
 
 def customer_reply(node, frustration, chat_state):
-    # Hidden keyword triggers based on last colleague message
-    last_text = ""
+    last = ""
     for line in reversed(chat_state):
         if not line.startswith("Customer:"):
-            last_text = line.lower()
+            last = line.lower()
             break
 
-    # Hidden branches
-    if "credit" in last_text or "refund" in last_text:
-        return (
-            "Customer: Oh… okay, that actually helps. I wasn’t expecting that.",
-            "step4_relief",
-        )
+    if "credit" in last or "refund" in last:
+        return ("Customer: Oh… okay, that actually helps.", "step4_relief")
 
-    if "complaint" in last_text or "ombudsman" in last_text:
-        return (
-            "Customer: I didn’t want it to get formal… I just want this sorted.",
-            "step4_defensive",
-        )
+    if "complaint" in last or "ombudsman" in last:
+        return ("Customer: I don’t want this to get formal… I just want it sorted.", "step4_defensive")
 
-    if "upgrade" in last_text or "new phone" in last_text:
-        return (
-            "Customer: I mean… I *have* been thinking about upgrading.",
-            "step4_distraction",
-        )
+    if "upgrade" in last or "new phone" in last:
+        return ("Customer: I *have* been thinking about upgrading.", "step4_distraction")
 
-    # Main linear branching
     if node == "step1":
         if frustration >= 2.5:
-            return (
-                "Customer: This really isn’t acceptable. I didn’t use anything close to that amount of data.",
-                "step2",
-            )
-        else:
-            return (
-                "Customer: Okay… can you help me understand why this happened?",
-                "step2",
-            )
+            return ("Customer: This isn’t acceptable.", "step2")
+        return ("Customer: Can you help me understand why this happened?", "step2")
 
-    elif node == "step2":
+    if node == "step2":
         if frustration >= 2.5:
-            return (
-                "Customer: I feel like nobody ever explains this properly. Are you actually checking my account?",
-                "step3",
-            )
-        else:
-            return (
-                "Customer: Thanks for looking into it. What do you need from me?",
-                "step3",
-            )
+            return ("Customer: Are you actually checking my account?", "step3")
+        return ("Customer: Thanks — what do you need from me?", "step3")
 
-    elif node == "step3":
+    if node == "step3":
         if frustration >= 2.5:
-            return (
-                "Customer: This is taking ages… I just want a straight answer.",
-                "step4",
-            )
-        else:
-            return (
-                "Customer: Okay, that makes sense. What did you find?",
-                "step4",
-            )
+            return ("Customer: I just want a straight answer.", "step4")
+        return ("Customer: Okay, what did you find?", "step4")
 
-    elif node == "step4":
+    if node == "step4":
         if frustration >= 2.5:
-            return (
-                "Customer: So you're saying this is basically my fault? That doesn’t sound right.",
-                "step5",
-            )
-        else:
-            return (
-                "Customer: Thanks for explaining it clearly. What can we do to fix it?",
-                "step5",
-            )
+            return ("Customer: So you're saying this is my fault?", "step5")
+        return ("Customer: Thanks — what can we do to fix it?", "step5")
 
-    elif node == "step4_relief":
-        return (
-            "Customer: Honestly, that makes a big difference. I was worried I’d be stuck with the full amount.",
-            "step5",
-        )
+    if node == "step4_relief":
+        return ("Customer: That makes a big difference.", "step5")
 
-    elif node == "step4_defensive":
-        return (
-            "Customer: I just don’t want this to turn into a big argument. I just want it sorted fairly.",
-            "step5",
-        )
+    if node == "step4_defensive":
+        return ("Customer: I just want this sorted fairly.", "step5")
 
-    elif node == "step4_distraction":
-        return (
-            "Customer: If I did upgrade, would that change how my data is charged?",
-            "step5",
-        )
+    if node == "step4_distraction":
+        return ("Customer: Would upgrading change my data charges?", "step5")
 
-    elif node == "step5":
+    if node == "step5":
         if frustration >= 2.5:
-            return (
-                "Customer: You know what… forget it. I’ll look at switching networks.",
-                "end_bad",
-            )
-        elif frustration >= 1.8:
-            return (
-                "Customer: I mean… I get it, but I’m still not totally convinced.",
-                "end_neutral",
-            )
-        else:
-            return (
-                "Customer: That sounds fair. I appreciate your help today.",
-                "end_good",
-            )
+            return ("Customer: Forget it — I’ll look at switching networks.", "end_bad")
+        if frustration >= 1.8:
+            return ("Customer: I get it… but I’m not fully convinced.", "end_neutral")
+        return ("Customer: That sounds fair — thanks for your help.", "end_good")
 
-    else:
-        return (
-            "Customer: Thanks for your help today.",
-            "end_good",
-        )
+    return ("Customer: Thanks for your help today.", "end_good")
 
+# ---------- SCORE TOTAL ----------
 
 def calculate_total_score(scores, frustration):
-    base = (
-        scores["empathy"]
-        + scores["accuracy"]
-        + scores["professionalism"]
-        + scores["problem_solving"]
-        + scores["de_escalation"]
-    )
-    penalty = (frustration - 1) * 3.0
-    total = max(0.0, min(50.0, base - penalty))
-    return total
+    base = sum(scores.values())
+    penalty = (frustration - 1) * 3
+    return max(0, min(50, base - penalty))
 
-
-# ---------- START & SEND HANDLERS ----------
+# ---------- START ----------
 
 def on_start(name, scenario_name):
     if not name:
         name = "Colleague"
 
-    if scenario_name not in SCENARIOS:
-        scenario_name = DEFAULT_SCENARIO_NAME
-
-    scenario = SCENARIOS[scenario_name]
+    scenario = SCENARIOS.get(scenario_name, list(SCENARIOS.values())[0])
 
     profile_name = random.choice(list(CUSTOMER_PROFILES.keys()))
     profile = CUSTOMER_PROFILES[profile_name]
@@ -350,15 +252,14 @@ def on_start(name, scenario_name):
     chat = [f"Customer: {intro}"]
 
     scores = {
-        "empathy": 5.0,
-        "accuracy": 5.0,
-        "professionalism": 5.0,
-        "problem_solving": 5.0,
-        "de_escalation": 5.0,
+        "empathy": 5,
+        "accuracy": 5,
+        "professionalism": 5,
+        "problem_solving": 5,
+        "de_escalation": 5,
     }
 
-    frustration = 2 + profile["tone_bias"]
-    frustration = max(1, min(3, frustration))
+    frustration = max(1, min(3, 2 + profile["tone_bias"]))
 
     tone_score, tone_html = analyse_tone(chat[0])
 
@@ -369,26 +270,27 @@ def on_start(name, scenario_name):
         "• Explain what you’ll do next\n"
     )
 
-    image_path = get_customer_image(frustration, customer_type="adult_male")
+    image_path = get_customer_image(frustration)
 
     return (
-        image_path,          # image_output
-        "\n".join(chat),     # chat_output
-        chat,                # chat_state
-        scenario_name,       # scenario_state
-        "step1",             # node_state
-        scores,              # scores_state
-        name,                # name_state
-        False,               # finished_state
-        frustration,         # frustration_state
-        "adult_male",        # customer_type_state
-        0,                   # score_bar
-        coaching,            # coaching_box
-        tone_html,           # tone_display
-        profile_name,        # customer_profile_state
-        [],                  # hidden_branches_state
+        image_path,
+        "\n".join(chat),
+        chat,
+        scenario_name,
+        "step1",
+        scores,
+        name,
+        False,
+        frustration,
+        "adult_male",
+        0,
+        coaching,
+        tone_html,
+        profile_name,
+        [],
     )
 
+# ---------- SEND ----------
 
 def on_send(
     user_text,
@@ -404,7 +306,7 @@ def on_send(
     hidden_branches_state,
 ):
     if finished_state:
-        image_path = get_customer_image(frustration_state, customer_type_state)
+        image_path = get_customer_image(frustration_state)
         return (
             image_path,
             "\n".join(chat_state),
@@ -417,16 +319,16 @@ def on_send(
             frustration_state,
             customer_type_state,
             calculate_total_score(scores_state, frustration_state),
-            "Scenario already finished. Start a new one to continue training.",
+            "Scenario finished.",
             analyse_tone(chat_state[-1])[1],
             customer_profile_state,
             hidden_branches_state,
         )
 
     if not user_text.strip():
-        coaching = "You need to reply to the customer. Try acknowledging their feelings first."
+        coaching = "You need to reply to the customer."
         tone_score, tone_html = analyse_tone(chat_state[-1])
-        image_path = get_customer_image(frustration_state, customer_type_state)
+        image_path = get_customer_image(frustration_state)
         return (
             image_path,
             "\n".join(chat_state),
@@ -459,8 +361,13 @@ def on_send(
     coaching = live_coaching(user_text)
 
     finished = new_node.startswith("end")
+
     if finished:
-        ending = "success" if new_node == "end_good" else ("neutral" if new_node == "end_neutral" else "fail")
+        ending = (
+            "success" if new_node == "end_good"
+            else "neutral" if new_node == "end_neutral"
+            else "fail"
+        )
 
         entry = {
             "name": name_state,
@@ -477,9 +384,10 @@ def on_send(
             "ending": ending,
         }
         save_performance(entry)
-        coaching += "\n\nScenario finished. Your performance has been recorded for the Manager Portal."
 
-    image_path = get_customer_image(frustration_state, customer_type_state)
+        coaching += "\n\nScenario finished. Your performance has been recorded."
+
+    image_path = get_customer_image(frustration_state)
 
     return (
         image_path,
@@ -499,6 +407,7 @@ def on_send(
         hidden_branches_state,
     )
 
+# ---------- LIVE UPDATE ----------
 
 def on_live_update(user_text):
     coaching = live_coaching(user_text)
@@ -508,20 +417,12 @@ def on_live_update(user_text):
         _, tone_html = analyse_tone(user_text)
     return coaching, tone_html
 
+# ---------- UI (Gradio 3.50.2 Compatible) ----------
 
-# ---------- MOBILE-OPTIMISED UI (CHAT + FULL DASHBOARD + SCENARIO SELECT) ----------
-
-with gr.Blocks(
-    css="""
-/* MOBILE OPTIMISATION */
+with gr.Blocks(css="""
 @media (max-width: 768px) {
-    .chatbox {
-        height: 320px !important;
-    }
-    .avatar {
-        width: 120px !important;
-        height: 120px !important;
-    }
+    .chatbox { height: 320px !important; }
+    .avatar { width: 120px !important; height: 120px !important; }
     .inputbar {
         position: sticky;
         bottom: 0;
@@ -531,19 +432,16 @@ with gr.Blocks(
         z-index: 10;
     }
 }
-"""
-) as demo:
+""") as demo:
 
     gr.Markdown("# Tesco Mobile Training Simulator")
 
-    # Scenario selection
     scenario_dropdown = gr.Dropdown(
         choices=list(SCENARIOS.keys()),
-        value=DEFAULT_SCENARIO_NAME if DEFAULT_SCENARIO_NAME in SCENARIOS else None,
+        value=list(SCENARIOS.keys())[0],
         label="Choose a scenario",
     )
 
-    # --- TOP SECTION: Avatar + Chat ---
     with gr.Row():
         with gr.Column(scale=1):
             image_output = gr.Image(
@@ -553,30 +451,26 @@ with gr.Blocks(
                 width=120,
                 elem_classes=["avatar"],
             )
-
         with gr.Column(scale=3):
             chat_output = gr.Textbox(
                 label="Conversation",
                 lines=15,
-                elem_classes=["chatbox"],
                 interactive=False,
+                elem_classes=["chatbox"],
             )
 
-    # --- FULL DASHBOARD: Score + Coaching + Tone ---
     gr.Markdown("### Live Training Dashboard")
 
     with gr.Row():
-        with gr.Column(scale=2):
-            score_bar = gr.Slider(
-                minimum=0,
-                maximum=50,
-                value=0,
-                step=1,
-                label="Total Performance Score",
-                interactive=False,
-            )
-        with gr.Column(scale=2):
-            tone_display = gr.HTML(label="Tone Meter")
+        score_bar = gr.Slider(
+            minimum=0,
+            maximum=50,
+            value=0,
+            step=1,
+            label="Total Performance Score",
+            interactive=False,
+        )
+        tone_display = gr.HTML(label="Tone Meter")
 
     coaching_box = gr.Textbox(
         label="Real-Time Coaching",
@@ -584,7 +478,6 @@ with gr.Blocks(
         interactive=False,
     )
 
-    # --- INPUT BAR (BOTTOM) ---
     with gr.Box(elem_classes=["inputbar"]):
         with gr.Row():
             user_input = gr.Textbox(
@@ -593,12 +486,10 @@ with gr.Blocks(
             )
             send_button = gr.Button("Send", variant="primary")
 
-    # --- START BUTTON + NAME ---
     with gr.Row():
         name_input = gr.Textbox(label="Your name")
         start_button = gr.Button("Start Scenario")
 
-    # --- STATES ---
     chat_state = gr.State([])
     scenario_state = gr.State(None)
     node_state = gr.State("")
@@ -610,7 +501,6 @@ with gr.Blocks(
     customer_profile_state = gr.State("")
     hidden_branches_state = gr.State([])
 
-    # --- BUTTON LOGIC ---
     start_button.click(
         on_start,
         inputs=[name_input, scenario_dropdown],
@@ -648,7 +538,7 @@ with gr.Blocks(
             customer_profile_state,
             hidden_branches_state,
         ],
-        outputs[
+        outputs=[
             image_output,
             chat_output,
             chat_state,
