@@ -88,13 +88,11 @@ def on_start(name):
     if not name:
         name = "Colleague"
 
-    # Initial customer message
     chat = [
         "Customer: Hi, I’ve just checked my bill and there’s a huge data charge I wasn’t expecting. "
         "I’m really annoyed – this doesn’t feel fair."
     ]
 
-    # Initial scores
     scores = {
         "empathy": 5.0,
         "accuracy": 5.0,
@@ -103,7 +101,6 @@ def on_start(name):
         "de_escalation": 5.0,
     }
 
-    # Initial tone
     tone_score, tone_html = analyse_tone(chat[0])
 
     coaching = (
@@ -113,30 +110,29 @@ def on_start(name):
         "• Explain what you’ll do next\n"
     )
 
-    # Image path (you can change this to match your repo)
-    image_path = "characters/adult_male.png"
+    # UPDATED IMAGE PATH
+    image_path = "characters/adult_male/neutral.png"
 
     return (
-        image_path,          # image_output
-        "\n".join(chat),     # chat_output
-        chat,                # chat_state
-        SCENARIO_NAME,       # scenario_state
-        "step1",             # node_state
-        scores,              # scores_state
-        name,                # name_state
-        False,               # finished_state
-        2,                   # frustration_state (2 = medium)
-        "adult_male",        # customer_type_state
-        0,                   # score_bar
-        coaching,            # coaching_box
-        tone_html            # tone_display
+        image_path,
+        "\n".join(chat),
+        chat,
+        SCENARIO_NAME,
+        "step1",
+        scores,
+        name,
+        False,
+        2,
+        "adult_male",
+        0,
+        coaching,
+        tone_html
     )
 
 
 def score_reply(user_text, scores, frustration):
     t = user_text.lower()
 
-    # Empathy
     if any(w in t for w in ["sorry", "apologise", "understand", "frustrating"]):
         scores["empathy"] += 1.0
         frustration = max(1, frustration - 0.2)
@@ -144,32 +140,27 @@ def score_reply(user_text, scores, frustration):
         scores["empathy"] -= 0.5
         frustration = min(3, frustration + 0.1)
 
-    # Accuracy
     if any(w in t for w in ["data", "usage", "allowance", "plan", "tariff"]):
         scores["accuracy"] += 0.8
     else:
         scores["accuracy"] -= 0.3
 
-    # Professionalism
     if any(w in t for w in ["please", "thank", "appreciate"]):
         scores["professionalism"] += 0.5
     if any(w in t for w in ["mate", "pal", "buddy", "ridiculous"]):
         scores["professionalism"] -= 0.8
 
-    # Problem solving
     if any(w in t for w in ["option", "solution", "credit", "adjust", "review", "investigate"]):
         scores["problem_solving"] += 1.0
     else:
         scores["problem_solving"] -= 0.4
 
-    # De-escalation
     if any(w in t for w in ["i’ll sort", "i’ll look", "let me check", "we can fix"]):
         scores["de_escalation"] += 0.8
         frustration = max(1, frustration - 0.3)
     else:
         scores["de_escalation"] -= 0.3
 
-    # Clamp scores
     for k in scores:
         scores[k] = max(0.0, min(10.0, scores[k]))
 
@@ -217,7 +208,6 @@ def calculate_total_score(scores, frustration):
         + scores["problem_solving"]
         + scores["de_escalation"]
     )
-    # Frustration penalty
     penalty = (frustration - 1) * 3.0
     total = max(0.0, min(50.0, base - penalty))
     return total
@@ -235,9 +225,8 @@ def on_send(
     customer_type_state,
 ):
     if finished_state:
-        # Scenario already finished
         return (
-            "characters/adult_male.png",
+            "characters/adult_male/neutral.png",
             "\n".join(chat_state),
             chat_state,
             scenario_state,
@@ -256,7 +245,7 @@ def on_send(
         coaching = "You need to reply to the customer. Try acknowledging their feelings first."
         tone_score, tone_html = analyse_tone(chat_state[-1])
         return (
-            "characters/adult_male.png",
+            "characters/adult_male/neutral.png",
             "\n".join(chat_state),
             chat_state,
             scenario_state,
@@ -271,31 +260,23 @@ def on_send(
             tone_html,
         )
 
-    # Add colleague reply
     chat_state.append(f"{name_state}: {user_text}")
 
-    # Update scores and frustration
     scores_state, frustration_state = score_reply(user_text, scores_state, frustration_state)
 
-    # Customer reply + node advance
     cust_text, new_node = customer_reply(node_state, frustration_state)
     chat_state.append(cust_text)
 
-    # Tone based on latest customer message
     tone_score, tone_html = analyse_tone(cust_text)
 
-    # Total score
     total_score = calculate_total_score(scores_state, frustration_state)
 
-    # Coaching text
     coaching = live_coaching(user_text)
 
-    # Check ending
     finished = new_node.startswith("end")
     ending = "success" if new_node == "end_good" else "fail"
 
     if finished:
-        # Save performance entry
         entry = {
             "name": name_state,
             "scenario": scenario_state,
@@ -311,8 +292,8 @@ def on_send(
         save_performance(entry)
         coaching += "\n\nScenario finished. Your performance has been recorded for the Manager Portal."
 
-    # Image (you can later vary by customer_type_state)
-    image_path = "characters/adult_male.png"
+    # UPDATED IMAGE PATH
+    image_path = "characters/adult_male/neutral.png"
 
     return (
         image_path,
@@ -333,7 +314,6 @@ def on_send(
 
 def on_live_update(user_text):
     coaching = live_coaching(user_text)
-    # Tone preview based on your reply (rough)
     if not user_text.strip():
         tone_html = "<div>Type your reply to see live tone and coaching.</div>"
     else:
@@ -341,7 +321,7 @@ def on_live_update(user_text):
     return coaching, tone_html
 
 
-# ---------- MOBILE-OPTIMISED UI (CHAT + FULL DASHBOARD) ----------
+# ---------- MOBILE UI ----------
 
 with gr.Blocks(
     css="""
@@ -368,7 +348,6 @@ with gr.Blocks(
 
     gr.Markdown("# Tesco Mobile Training Simulator")
 
-    # --- TOP SECTION: Avatar + Chat ---
     with gr.Row():
         with gr.Column(scale=1):
             image_output = gr.Image(
@@ -387,7 +366,6 @@ with gr.Blocks(
                 interactive=False,
             )
 
-    # --- FULL DASHBOARD: Score + Coaching + Tone ---
     gr.Markdown("### Live Training Dashboard")
 
     with gr.Row():
@@ -409,7 +387,6 @@ with gr.Blocks(
         interactive=False,
     )
 
-    # --- INPUT BAR (BOTTOM) ---
     with gr.Box(elem_classes=["inputbar"]):
         with gr.Row():
             user_input = gr.Textbox(
@@ -418,12 +395,10 @@ with gr.Blocks(
             )
             send_button = gr.Button("Send", variant="primary")
 
-    # --- START BUTTON + NAME ---
     with gr.Row():
         name_input = gr.Textbox(label="Your name")
         start_button = gr.Button("Start Scenario")
 
-    # --- STATES ---
     chat_state = gr.State([])
     scenario_state = gr.State(None)
     node_state = gr.State("")
@@ -433,7 +408,6 @@ with gr.Blocks(
     frustration_state = gr.State(2)
     customer_type_state = gr.State("adult_male")
 
-    # --- BUTTON LOGIC ---
     start_button.click(
         on_start,
         inputs=[name_input],
