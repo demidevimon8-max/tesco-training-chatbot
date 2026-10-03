@@ -6,30 +6,9 @@ from datetime import datetime
 
 PERFORMANCE_FILE = "performance.json"
 SCENARIOS_FILE = "scenarios.json"
+ACCOUNTS_FILE = "accounts.json"
 
-# ---------- CUSTOMER PERSONALITY PROFILES ----------
-
-CUSTOMER_PROFILES = {
-    "polite": {
-        "intro": "Hi, sorry to bother you… I’ve just noticed a strange charge on my bill.",
-        "tone_bias": -0.3,
-    },
-    "angry": {
-        "intro": "Right, what’s going on with my bill? This is ridiculous.",
-        "tone_bias": 0.5,
-    },
-    "confused": {
-        "intro": "Um… I’m not sure what this charge is. Can you help me understand it?",
-        "tone_bias": 0.0,
-    },
-    "rushed": {
-        "intro": "I don’t have much time — what’s this charge on my bill?",
-        "tone_bias": 0.2,
-    },
-}
-
-# ---------- FILE HELPERS ----------
-
+# ---------- LOAD PERFORMANCE ----------
 def load_performance():
     if not os.path.exists(PERFORMANCE_FILE):
         return []
@@ -40,7 +19,6 @@ def load_performance():
     except Exception:
         return []
 
-
 def save_performance(entry):
     data = load_performance()
     data.append(entry)
@@ -50,22 +28,25 @@ def save_performance(entry):
     except Exception:
         pass
 
-
+# ---------- LOAD SCENARIOS ----------
 def load_scenarios():
     if not os.path.exists(SCENARIOS_FILE):
         return {
             "Billing Issue – Data Overcharge": {
                 "intro": "I’ve just checked my bill and there’s a huge data charge I wasn’t expecting.",
                 "steps": ["step1", "step2", "step3", "step4", "step5"],
+                "uses_account": True
             },
             "Lost SIM / Replacement": {
                 "intro": "I’ve lost my SIM card and I need a replacement urgently.",
                 "steps": ["step1", "step2", "step3", "step4"],
+                "uses_account": False
             },
             "Upgrade Eligibility": {
                 "intro": "I want to upgrade but the app says I’m not eligible. Why?",
                 "steps": ["step1", "step2", "step3", "step4", "step5"],
-            },
+                "uses_account": True
+            }
         }
     try:
         with open(SCENARIOS_FILE, "r", encoding="utf-8") as f:
@@ -75,15 +56,25 @@ def load_scenarios():
 
 SCENARIOS = load_scenarios()
 
-# ---------- TONE & COACHING HELPERS ----------
+# ---------- LOAD ACCOUNTS ----------
+def load_accounts():
+    if not os.path.exists(ACCOUNTS_FILE):
+        return {}
+    try:
+        with open(ACCOUNTS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
+ACCOUNTS = load_accounts()
+# ---------- TONE ANALYSIS ----------
 def analyse_tone(text):
     t = text.lower()
     score = 2
 
-    if any(w in t for w in ["angry", "annoyed", "ridiculous", "useless", "furious"]):
+    if any(w in t for w in ["angry", "annoyed", "ridiculous", "furious"]):
         score = 1
-    elif any(w in t for w in ["thank", "great", "helpful", "appreciate", "brilliant"]):
+    elif any(w in t for w in ["thank", "great", "helpful", "appreciate"]):
         score = 3
 
     if "!" in t and score == 2:
@@ -98,7 +89,7 @@ def analyse_tone(text):
 
     return score, f"<div>Customer tone: {label}</div>"
 
-
+# ---------- COACHING ----------
 def live_coaching(text):
     t = text.lower()
     tips = []
@@ -123,8 +114,7 @@ def live_coaching(text):
 
     return "\n".join(f"• {tip}" for tip in tips)
 
-# ---------- DYNAMIC CUSTOMER IMAGE ----------
-
+# ---------- CUSTOMER IMAGE ----------
 def get_customer_image(frustration, customer_type="adult_male"):
     base = f"characters/{customer_type}"
     if frustration <= 1.4:
@@ -135,7 +125,6 @@ def get_customer_image(frustration, customer_type="adult_male"):
         return f"{base}/annoyed.png"
 
 # ---------- SCORING ----------
-
 def score_reply(user_text, scores, frustration):
     t = user_text.lower()
 
@@ -174,24 +163,27 @@ def score_reply(user_text, scores, frustration):
 
     return scores, frustration
 
-# ---------- CUSTOMER REPLY ----------
-
-def customer_reply(node, frustration, chat_state):
+# ---------- CUSTOMER REPLY WITH ACCOUNT LOGIC ----------
+def customer_reply(node, frustration, chat_state, scenario_uses_account, account_data):
     last = ""
     for line in reversed(chat_state):
         if not line.startswith("Customer:"):
             last = line.lower()
             break
 
-    if "credit" in last or "refund" in last:
-        return ("Customer: Oh… okay, that actually helps.", "step4_relief")
+    # Account-based reactions only for Billing + Upgrade
+    if scenario_uses_account:
+        if "check" in last or "look" in last or "review" in last:
+            used = account_data.get("used_data", "Unknown")
+            plan = account_data.get("plan", "Unknown")
+            extra = account_data.get("extra_charges", "£0.00")
 
-    if "complaint" in last or "ombudsman" in last:
-        return ("Customer: I don’t want this to get formal… I just want it sorted.", "step4_defensive")
+            return (
+                f"Customer: Okay… what does it say? My plan is {plan}, I used {used}, so why is there an extra charge of {extra}?",
+                "step4"
+            )
 
-    if "upgrade" in last or "new phone" in last:
-        return ("Customer: I *have* been thinking about upgrading.", "step4_distraction")
-
+    # Normal branching
     if node == "step1":
         if frustration >= 2.5:
             return ("Customer: This isn’t acceptable.", "step2")
@@ -212,15 +204,6 @@ def customer_reply(node, frustration, chat_state):
             return ("Customer: So you're saying this is my fault?", "step5")
         return ("Customer: Thanks — what can we do to fix it?", "step5")
 
-    if node == "step4_relief":
-        return ("Customer: That makes a big difference.", "step5")
-
-    if node == "step4_defensive":
-        return ("Customer: I just want this sorted fairly.", "step5")
-
-    if node == "step4_distraction":
-        return ("Customer: Would upgrading change my data charges?", "step5")
-
     if node == "step5":
         if frustration >= 2.5:
             return ("Customer: Forget it — I’ll look at switching networks.", "end_bad")
@@ -229,26 +212,29 @@ def customer_reply(node, frustration, chat_state):
         return ("Customer: That sounds fair — thanks for your help.", "end_good")
 
     return ("Customer: Thanks for your help today.", "end_good")
-
 # ---------- SCORE TOTAL ----------
-
 def calculate_total_score(scores, frustration):
     base = sum(scores.values())
     penalty = (frustration - 1) * 3
     return max(0, min(50, base - penalty))
 
-# ---------- START ----------
-
+# ---------- START SCENARIO ----------
 def on_start(name, scenario_name):
     if not name:
         name = "Colleague"
 
     scenario = SCENARIOS.get(scenario_name, list(SCENARIOS.values())[0])
+    scenario_uses_account = scenario.get("uses_account", False)
 
-    profile_name = random.choice(list(CUSTOMER_PROFILES.keys()))
-    profile = CUSTOMER_PROFILES[profile_name]
+    # Assign account only if scenario uses account
+    if scenario_uses_account:
+        account_id = random.choice(list(ACCOUNTS.keys()))
+        account_data = ACCOUNTS[account_id]
+    else:
+        account_id = None
+        account_data = {}
 
-    intro = scenario.get("intro", profile["intro"])
+    intro = scenario["intro"]
     chat = [f"Customer: {intro}"]
 
     scores = {
@@ -259,7 +245,7 @@ def on_start(name, scenario_name):
         "de_escalation": 5,
     }
 
-    frustration = max(1, min(3, 2 + profile["tone_bias"]))
+    frustration = 2
 
     tone_score, tone_html = analyse_tone(chat[0])
 
@@ -286,12 +272,12 @@ def on_start(name, scenario_name):
         0,
         coaching,
         tone_html,
-        profile_name,
-        [],
+        scenario_uses_account,
+        account_id,
+        account_data
     )
 
 # ---------- SEND ----------
-
 def on_send(
     user_text,
     chat_state,
@@ -302,8 +288,10 @@ def on_send(
     finished_state,
     frustration_state,
     customer_type_state,
-    customer_profile_state,
-    hidden_branches_state,
+    score_bar_state,
+    scenario_uses_account,
+    account_id,
+    account_data
 ):
     if finished_state:
         image_path = get_customer_image(frustration_state)
@@ -321,8 +309,9 @@ def on_send(
             calculate_total_score(scores_state, frustration_state),
             "Scenario finished.",
             analyse_tone(chat_state[-1])[1],
-            customer_profile_state,
-            hidden_branches_state,
+            scenario_uses_account,
+            account_id,
+            account_data
         )
 
     if not user_text.strip():
@@ -343,15 +332,39 @@ def on_send(
             calculate_total_score(scores_state, frustration_state),
             coaching,
             tone_html,
-            customer_profile_state,
-            hidden_branches_state,
+            scenario_uses_account,
+            account_id,
+            account_data
         )
 
     chat_state.append(f"{name_state}: {user_text}")
 
+    # Account investigation tools
+    if scenario_uses_account:
+        lower = user_text.lower()
+
+        if "usage" in lower:
+            chat_state.append(f"System: Customer used {account_data['used_data']} this month.")
+
+        if "plan" in lower:
+            chat_state.append(f"System: Customer plan is {account_data['plan']}.")
+
+        if "charges" in lower:
+            chat_state.append(f"System: Extra charges: {account_data['extra_charges']}.")
+
+        if "upgrade" in lower:
+            chat_state.append(f"System: Upgrade eligibility: {account_data['upgrade_eligibility']}.")
+
     scores_state, frustration_state = score_reply(user_text, scores_state, frustration_state)
 
-    cust_text, new_node = customer_reply(node_state, frustration_state, chat_state)
+    cust_text, new_node = customer_reply(
+        node_state,
+        frustration_state,
+        chat_state,
+        scenario_uses_account,
+        account_data
+    )
+
     chat_state.append(cust_text)
 
     tone_score, tone_html = analyse_tone(cust_text)
@@ -377,9 +390,8 @@ def on_send(
             "scores": scores_state,
             "tone_average": tone_score,
             "frustration_change": round(frustration_state - 2, 2),
-            "branches_triggered": [node_state, new_node],
-            "hidden_branches": hidden_branches_state,
-            "customer_profile": customer_profile_state,
+            "account_id": account_id,
+            "account_data": account_data,
             "scenario_length": len(chat_state),
             "ending": ending,
         }
@@ -403,12 +415,12 @@ def on_send(
         total_score,
         coaching,
         tone_html,
-        customer_profile_state,
-        hidden_branches_state,
+        scenario_uses_account,
+        account_id,
+        account_data
     )
 
 # ---------- LIVE UPDATE ----------
-
 def on_live_update(user_text):
     coaching = live_coaching(user_text)
     if not user_text.strip():
@@ -416,9 +428,7 @@ def on_live_update(user_text):
     else:
         _, tone_html = analyse_tone(user_text)
     return coaching, tone_html
-
-# ---------- UI (Gradio 3.50.2 Compatible) ----------
-
+# ---------- UI ----------
 with gr.Blocks(css="""
 @media (max-width: 768px) {
     .chatbox { height: 320px !important; }
@@ -461,16 +471,16 @@ with gr.Blocks(css="""
 
     gr.Markdown("### Live Training Dashboard")
 
-    with gr.Row():
-        score_bar = gr.Slider(
-            minimum=0,
-            maximum=50,
-            value=0,
-            step=1,
-            label="Total Performance Score",
-            interactive=False,
-        )
-        tone_display = gr.HTML(label="Tone Meter")
+    score_bar = gr.Slider(
+        minimum=0,
+        maximum=50,
+        value=0,
+        step=1,
+        label="Total Performance Score",
+        interactive=False,
+    )
+
+    tone_display = gr.HTML(label="Tone Meter")
 
     coaching_box = gr.Textbox(
         label="Real-Time Coaching",
@@ -490,6 +500,7 @@ with gr.Blocks(css="""
         name_input = gr.Textbox(label="Your name")
         start_button = gr.Button("Start Scenario")
 
+    # ---------- STATES ----------
     chat_state = gr.State([])
     scenario_state = gr.State(None)
     node_state = gr.State("")
@@ -498,9 +509,11 @@ with gr.Blocks(css="""
     finished_state = gr.State(False)
     frustration_state = gr.State(2)
     customer_type_state = gr.State("adult_male")
-    customer_profile_state = gr.State("")
-    hidden_branches_state = gr.State([])
+    scenario_uses_account_state = gr.State(False)
+    account_id_state = gr.State(None)
+    account_data_state = gr.State({})
 
+    # ---------- BUTTON LOGIC ----------
     start_button.click(
         on_start,
         inputs=[name_input, scenario_dropdown],
@@ -518,8 +531,9 @@ with gr.Blocks(css="""
             score_bar,
             coaching_box,
             tone_display,
-            customer_profile_state,
-            hidden_branches_state,
+            scenario_uses_account_state,
+            account_id_state,
+            account_data_state
         ],
     )
 
@@ -535,8 +549,10 @@ with gr.Blocks(css="""
             finished_state,
             frustration_state,
             customer_type_state,
-            customer_profile_state,
-            hidden_branches_state,
+            score_bar,
+            scenario_uses_account_state,
+            account_id_state,
+            account_data_state
         ],
         outputs=[
             image_output,
@@ -545,23 +561,3 @@ with gr.Blocks(css="""
             scenario_state,
             node_state,
             scores_state,
-            name_state,
-            finished_state,
-            frustration_state,
-            customer_type_state,
-            score_bar,
-            coaching_box,
-            tone_display,
-            customer_profile_state,
-            hidden_branches_state,
-        ],
-    )
-
-    user_input.change(
-        on_live_update,
-        inputs=[user_input],
-        outputs=[coaching_box, tone_display],
-    )
-
-if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0")
