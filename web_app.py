@@ -561,3 +561,15 @@ with gr.Blocks(css="""
             scenario_state,
             node_state,
             scores_state,
+            account_data_state
+        ],
+    )
+
+    user_input.change(
+        on_live_update,
+        inputs=[user_input],
+        outputs=[coaching_box, tone_display],
+    )
+
+if __name__ == "__main__":
+    demo.launch(server_name="0.0.0.0", server_port=10000)
